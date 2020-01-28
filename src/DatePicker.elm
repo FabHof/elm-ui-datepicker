@@ -1,4 +1,21 @@
-module DatePicker exposing (ChangeEvent(..), DatePicker, Msg, Settings, defaultSettings, init, labelAbove, labelBelow, labelHidden, labelLeft, labelRight, placeholder, update, view)
+module DatePicker exposing
+    ( view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, update
+    , labelAbove, labelBelow, labelLeft, labelRight, labelHidden, placeholder
+    )
+
+{-|
+
+
+# Main
+
+@docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, update
+
+
+# Labels and Placeholders
+
+@docs labelAbove, labelBelow, labelLeft, labelRight, labelHidden, placeholder
+
+-}
 
 import Date exposing (Date)
 import Element exposing (Attribute, Element, alignLeft, alignRight, centerX, centerY, padding, spacing)
@@ -30,6 +47,7 @@ type DatePicker
     = DatePicker Model
 
 
+{-| -}
 type alias Model =
     { open : Bool
     , focused : Maybe Date
@@ -37,6 +55,7 @@ type alias Model =
     }
 
 
+{-| -}
 init : ( DatePicker, Cmd (Msg msg) )
 init =
     ( DatePicker
@@ -48,6 +67,7 @@ init =
     )
 
 
+{-| -}
 type Msg msg
     = ChangeDate Date
     | ChangeText String
@@ -59,6 +79,7 @@ type Msg msg
     | ExternalMsg msg
 
 
+{-| -}
 type ChangeEvent msg
     = DateChanged Date
     | DateCleared
@@ -67,6 +88,7 @@ type ChangeEvent msg
     | None
 
 
+{-| -}
 update : Msg msg -> DatePicker -> ( DatePicker, ChangeEvent msg )
 update msg (DatePicker model) =
     case msg of
@@ -117,11 +139,11 @@ type alias Config msg =
 
 {-| This view function is a wrapper arround `Input.text`. It needs the following things to work:
 
-    - `List (Attribute Msg)` is given directly to `Input.text`.
-    - `Settings Msg` is the stuff you care about, but probably want to set only once.
-    - `DatePicker` is the internal model i.e. the stuff you probably do not care about.
-    - `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
-    - `selectedDate` is only used to highlight the date when the datepicker is open. It's up to you to keep the text and selectedDate in sync.
+- `List (Attribute Msg)` is given directly to `Input.text`.
+- `Settings Msg` is the stuff you care about, but probably want to set only once.
+- `DatePicker` is the internal model i.e. the stuff you probably do not care about.
+- `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
+- `selectedDate` is only used to highlight the date when the datepicker is open. It's up to you to keep the text and selectedDate in sync.
 
 -}
 view :
@@ -362,31 +384,37 @@ weekdayToInterval weekday =
             Date.Sunday
 
 
+{-| -}
 labelAbove : List (Attribute msg) -> Element msg -> Label (Msg msg)
 labelAbove =
     fromInputLabel Input.labelAbove
 
 
+{-| -}
 labelBelow : List (Attribute msg) -> Element msg -> Label (Msg msg)
 labelBelow =
     fromInputLabel Input.labelBelow
 
 
+{-| -}
 labelLeft : List (Attribute msg) -> Element msg -> Label (Msg msg)
 labelLeft =
     fromInputLabel Input.labelLeft
 
 
+{-| -}
 labelRight : List (Attribute msg) -> Element msg -> Label (Msg msg)
 labelRight =
     fromInputLabel Input.labelRight
 
 
+{-| -}
 labelHidden : String -> Label (Msg msg)
 labelHidden =
     Input.labelHidden
 
 
+{-| -}
 placeholder : List (Attribute msg) -> Element msg -> Placeholder (Msg msg)
 placeholder attr el =
     Input.placeholder (List.map (Element.mapAttribute ExternalMsg) attr) (Element.map ExternalMsg el)
@@ -401,6 +429,7 @@ fromInputLabel fn attr el =
 -- HELPERS
 
 
+{-| -}
 preventDefaultOnMouseDown : Attribute (Msg msg)
 preventDefaultOnMouseDown =
     Element.htmlAttribute <|
