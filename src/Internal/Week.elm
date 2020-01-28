@@ -79,11 +79,6 @@ fromListWithDefault default items =
     in
     Week week
 
-
-something x =
-    WeekModel 5
-
-
 type Index
     = Day0
     | Day1
