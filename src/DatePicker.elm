@@ -14,7 +14,7 @@ import Task
 import Time exposing (Month(..), Weekday(..))
 
 
-{-| Settings are the sutff you probably care about, but want to only set once for a DatePicker.
+{-| Settings are the sutff you probably care about, but want to only set once for a given DatePicker.
 -}
 type alias Settings msg =
     { label : Input.Label (Msg msg)
@@ -34,7 +34,6 @@ type alias Model =
     { open : Bool
     , focused : Maybe Date
     , today : Date
-    , forceOpen : Bool
     }
 
 
@@ -44,7 +43,6 @@ init =
         { open = False
         , focused = Nothing
         , today = Date.fromOrdinalDate 1 1
-        , forceOpen = False
         }
     , Date.today |> Task.perform ChangeToday
     )
