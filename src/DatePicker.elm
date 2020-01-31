@@ -22,7 +22,7 @@ import Json.Decode as Decode
 import Time exposing (Month(..), Weekday(..))
 
 
-{-| Settings are the sutff you probably care about, but want to only set once for a given DatePicker.
+{-| Settings are the stuff you probably care about, but want to only set once for a given DatePicker.
 -}
 type alias Settings msg =
     { label : Input.Label msg
@@ -43,6 +43,7 @@ type alias Model =
     { open : Bool
     , focused : Maybe Date
     , today : Date
+    , visibleMonth : Date
     }
 
 
@@ -53,6 +54,7 @@ init =
         { open = False
         , focused = Nothing
         , today = Date.fromOrdinalDate 1 1
+        , visibleMonth = Date.fromOrdinalDate 1 1
         }
 
 
@@ -63,18 +65,20 @@ initWithToday today =
         { open = False
         , focused = Nothing
         , today = today
+        , visibleMonth = today
         }
 
 
 {-| -}
 setToday : Date -> DatePicker -> DatePicker
 setToday today (DatePicker model) =
-    DatePicker { model | today = today }
+    DatePicker { model | today = today, visibleMonth = today }
 
 
 {-| -}
 type Msg
-    = ChangeFocus Date
+    = ChangeFocus (Maybe Date)
+    | ChangeMonth Date
     | OpenCalendar
     | CloseCalendar
     | NothingToDo
@@ -93,13 +97,30 @@ update : Msg -> DatePicker -> DatePicker
 update msg (DatePicker model) =
     case msg of
         ChangeFocus focus ->
-            DatePicker { model | focused = Just focus }
+            DatePicker
+                { model
+                    | focused = focus
+                    , visibleMonth =
+                        case focus of
+                            Just date ->
+                                date
+
+                            Nothing ->
+                                model.visibleMonth
+                }
+
+        ChangeMonth month ->
+            DatePicker { model | visibleMonth = month }
 
         OpenCalendar ->
             DatePicker { model | open = True }
 
         CloseCalendar ->
-            DatePicker { model | open = False }
+            DatePicker
+                { model
+                    | open = False
+                    , focused = Nothing
+                }
 
         NothingToDo ->
             DatePicker model
@@ -126,13 +147,13 @@ type alias Config msg =
     }
 
 
-{-| This view function is a wrapper arround `Input.text`. It needs the following things to work:
+{-| This view function is a wrapper around `Input.text`. It needs the following things to work:
 
   - `List (Attribute Msg)` is given directly to `Input.text`.
   - `Settings Msg` is the stuff you care about, but probably want to set only once.
   - `DatePicker` is the internal model i.e. the stuff you probably do not care about.
   - `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
-  - `selectedDate` is only used to highlight the date when the datepicker is open. It's up to you to keep the text and selectedDate in sync.
+  - `selectedDate` is only used to highlight the date when the date picker is open. It's up to you to keep the text and selectedDate in sync.
 
 -}
 view :
@@ -150,18 +171,13 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
         (DatePicker model) =
             datePicker
 
-        visibleMonth =
-            model.focused
-                |> Maybe.withDefault
-                    (Maybe.withDefault model.today selectedDate)
-
         -- Internally, we use the config with the actual model and visibleMonth
         config =
             { settings = settings
             , model = model
             , text = inputConfig.text
             , selectedDate = selectedDate
-            , visibleMonth = visibleMonth
+            , visibleMonth = model.visibleMonth
             , onChange = onChange
             }
 
@@ -177,6 +193,7 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
             ++ attributes
             ++ [ Events.onFocus <| onChange <| PickerChanged OpenCalendar
                , Events.onLoseFocus <| onChange <| PickerChanged CloseCalendar
+               , arrowKeyDownFocusChange config
                ]
         )
         { onChange = onChange << TextChanged
@@ -184,6 +201,115 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
         , placeholder = settings.placeholder
         , label = settings.label
         }
+
+
+arrowKeyDownFocusChange : Config msg -> Attribute msg
+arrowKeyDownFocusChange ({ model } as config) =
+    let
+        focus =
+            case model.focused of
+                Just date ->
+                    date
+
+                Nothing ->
+                    Maybe.withDefault model.today config.selectedDate
+
+        toFocusMsg date =
+            config.onChange <| PickerChanged <| ChangeFocus <| Just date
+
+        toKeyCodeToMsg keyCode =
+            case keyCode of
+                40 ->
+                    -- ArrowDown
+                    ( Date.add Date.Days 7 focus
+                        |> toFocusMsg
+                    , False
+                    )
+
+                38 ->
+                    -- ArrowUp
+                    ( Date.add Date.Days -7 focus
+                        |> toFocusMsg
+                    , False
+                    )
+
+                -- On Left and Right, only move focus if we have something focused or if the text is empty
+                -- Prevent Default (move cursor) when we move focus.
+                37 ->
+                    -- ArrowLeft
+                    case model.focused of
+                        Just date ->
+                            ( Date.add Date.Days -1 date
+                                |> toFocusMsg
+                            , True
+                            )
+
+                        Nothing ->
+                            if config.text == "" then
+                                ( Date.add Date.Days -1 focus
+                                    |> toFocusMsg
+                                , True
+                                )
+
+                            else
+                                ( NothingToDo
+                                    |> PickerChanged
+                                    |> config.onChange
+                                , False
+                                )
+
+                39 ->
+                    -- ArrowRight
+                    case model.focused of
+                        Just date ->
+                            ( Date.add Date.Days 1 date
+                                |> toFocusMsg
+                            , True
+                            )
+
+                        Nothing ->
+                            if config.text == "" then
+                                ( Date.add Date.Days 1 focus
+                                    |> toFocusMsg
+                                , True
+                                )
+
+                            else
+                                ( NothingToDo
+                                    |> PickerChanged
+                                    |> config.onChange
+                                , False
+                                )
+
+                13 ->
+                    -- Enter
+                    case model.focused of
+                        Just date ->
+                            ( config.onChange <| DateChanged date, False )
+
+                        Nothing ->
+                            ( NothingToDo
+                                |> PickerChanged
+                                |> config.onChange
+                            , False
+                            )
+
+                _ ->
+                    ( NothingToDo
+                        |> PickerChanged
+                        |> config.onChange
+                    , False
+                    )
+    in
+    if model.open then
+        Element.htmlAttribute <|
+            Html.Events.preventDefaultOn "keydown"
+                (Html.Events.keyCode
+                    |> Decode.map toKeyCodeToMsg
+                )
+
+    else
+        Element.below Element.none
 
 
 calendarView :
@@ -251,7 +377,7 @@ calendarHeader { visibleMonth, onChange } =
             , Events.onClick <|
                 onChange <|
                     PickerChanged <|
-                        ChangeFocus (Date.add Date.Months -1 visibleMonth)
+                        ChangeMonth (Date.add Date.Months -1 visibleMonth)
             ]
           <|
             Element.text "<<"
@@ -264,7 +390,7 @@ calendarHeader { visibleMonth, onChange } =
             , Events.onClick <|
                 onChange <|
                     PickerChanged <|
-                        ChangeFocus (Date.add Date.Months 1 visibleMonth)
+                        ChangeMonth (Date.add Date.Months 1 visibleMonth)
             ]
           <|
             Element.text ">>"
@@ -277,11 +403,15 @@ dayView ({ model, settings } as config) day =
         focusedBackgr =
             Background.color (Element.rgb255 0x6C 0x75 0x7D)
 
-        focusedAttr =
+        wrongMonthAttr =
             if Date.month config.visibleMonth /= Date.month day then
                 Just (Font.color (Element.rgb255 0x80 0x80 0x80))
 
-            else if config.visibleMonth == day then
+            else
+                Nothing
+
+        focusedAttr =
+            if model.focused == Just day then
                 Just focusedBackgr
 
             else
@@ -295,15 +425,11 @@ dayView ({ model, settings } as config) day =
                 Nothing
 
         selectedAttr =
-            config.selectedDate
-                |> Maybe.andThen
-                    (\selectedDate ->
-                        if selectedDate == day then
-                            Just (Background.color settings.focusColor)
+            if config.selectedDate == Just day then
+                Just (Background.color settings.focusColor)
 
-                        else
-                            Just (Element.mouseOver [ focusedBackgr ])
-                    )
+            else
+                Nothing
 
         noNothing a b =
             case a of
@@ -316,7 +442,7 @@ dayView ({ model, settings } as config) day =
         calculatedAttr =
             List.foldl noNothing
                 []
-                [ focusedAttr, todayAttr, selectedAttr ]
+                [ focusedAttr, todayAttr, selectedAttr, wrongMonthAttr ]
     in
     Element.el
         ((Events.onClick <| config.onChange <| DateChanged day)

@@ -4,3 +4,7 @@ elm-stuff
 repl-temp-*
 
 docs.json
+
+.vscode
+
+index.html
