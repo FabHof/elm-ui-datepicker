@@ -1,6 +1,8 @@
-# elm-ui-datepicker
+# Date Picker
 
-Work in progress - but there is something in the examples folder.
+A reasonable date picker for the awesome [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/)
 
-If you would like to use this date picker, let me know and I will release it.
+[See the simple demo here.](https://fabhof.github.io/elm-ui-datepicker/)
+
+# Usage
 
