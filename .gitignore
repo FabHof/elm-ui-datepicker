@@ -5,4 +5,4 @@ repl-temp-*
 
 .vscode
 
-index.html
+examples/index.html
