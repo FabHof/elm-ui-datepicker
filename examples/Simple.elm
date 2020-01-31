@@ -22,11 +22,6 @@ type Msg
     | ChangeTody Date
 
 
-settings : DatePicker.Settings Msg
-settings =
-    DatePicker.defaultSettings <| Input.labelAbove [] <| Element.text "Pick A Date"
-
-
 init : ( Model, Cmd Msg )
 init =
     ( { date = Nothing
@@ -41,7 +36,9 @@ view : Model -> Html Msg
 view model =
     Element.layout [] <|
         DatePicker.view [ Element.width Element.shrink, Element.centerX, Element.centerY ]
-            { settings = settings
+            { settings = DatePicker.defaultSettings
+            , label = Input.labelAbove [] <| Element.text "Pick A Date"
+            , placeholder = Just <| Input.placeholder [] <| Element.text "jjjj-MM-dd"
             , datePicker = model.datePicker
             , text = model.dateText
             , selectedDate = model.date

@@ -32,10 +32,8 @@ import Time exposing (Month(..), Weekday(..))
 
 {-| Settings are the stuff you probably care about, but want to only set once for a given DatePicker.
 -}
-type alias Settings msg =
-    { label : Input.Label msg
-    , placeholder : Maybe (Input.Placeholder msg)
-    , firstDayOfWeek : Weekday
+type alias Settings =
+    { firstDayOfWeek : Weekday
     , focusColor : Element.Color
     }
 
@@ -136,17 +134,17 @@ update msg (DatePicker model) =
 
 {-| Reasonable default settings. You still have to give it some input.
 -}
-defaultSettings : Input.Label msg -> Settings msg
-defaultSettings label =
-    { placeholder = Nothing
-    , label = label
-    , firstDayOfWeek = Mon
+defaultSettings : Settings
+defaultSettings =
+    { firstDayOfWeek = Mon
     , focusColor = Element.rgb255 0x00 0x7B 0xFF
     }
 
 
 type alias Config msg =
-    { settings : Settings msg
+    { settings : Settings
+    , label : Input.Label msg
+    , placeholder : Maybe (Input.Placeholder msg)
     , model : Model
     , text : String
     , selectedDate : Maybe Date
@@ -167,14 +165,16 @@ type alias Config msg =
 view :
     List (Attribute msg)
     ->
-        { settings : Settings msg
+        { settings : Settings
+        , label : Input.Label msg
+        , placeholder : Maybe (Input.Placeholder msg)
         , datePicker : DatePicker
         , text : String
         , selectedDate : Maybe Date
         , onChange : ChangeEvent -> msg
         }
     -> Element msg
-view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig) =
+view attributes ({ settings, datePicker,label, placeholder, selectedDate, onChange } as inputConfig) =
     let
         (DatePicker model) =
             datePicker
@@ -184,6 +184,8 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
             { settings = settings
             , model = model
             , text = inputConfig.text
+            , label = label
+            , placeholder = placeholder
             , selectedDate = selectedDate
             , visibleMonth = model.visibleMonth
             , onChange = onChange
@@ -210,8 +212,8 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
             )
             { onChange = onChange << TextChanged
             , text = config.text
-            , placeholder = settings.placeholder
-            , label = settings.label
+            , placeholder = placeholder
+            , label = label
             }
 
 
@@ -413,7 +415,7 @@ calendarHeader { visibleMonth, onChange } =
 dayView : Config msg -> Date -> Element msg
 dayView ({ model, settings } as config) day =
     let
-        focusedBackgr =
+        focusedBackground =
             Background.color (Element.rgb255 0x6C 0x75 0x7D)
 
         wrongMonthAttr =
@@ -425,7 +427,7 @@ dayView ({ model, settings } as config) day =
 
         focusedAttr =
             if model.focused == Just day then
-                Just focusedBackgr
+                Just focusedBackground
 
             else
                 Nothing
@@ -531,7 +533,8 @@ close (DatePicker model) =
 -- HELPERS
 
 
-{-| This is used, to prevent closing the date picker, when clicking to change the month -}
+{-| This is used, to prevent closing the date picker, when clicking to change the month
+-}
 preventDefaultOnMouseDown : Config msg -> Attribute msg
 preventDefaultOnMouseDown config =
     Element.htmlAttribute <|
