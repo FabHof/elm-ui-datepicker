@@ -11,9 +11,11 @@ module DatePicker exposing
 @docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, initWithToday, setToday, update
 
 
-# Changing
+# Helpers
 
-@doc open, close
+For when you want to be more in control
+
+@docs close, open
 
 -}
 
@@ -532,11 +534,15 @@ weekdayToInterval weekday =
             Date.Sunday
 
 
+{-| Sets the date picker state to open
+-}
 open : DatePicker -> DatePicker
 open (DatePicker model) =
     DatePicker { model | open = True }
 
 
+{-| Sets the date picker state to closed
+-}
 close : DatePicker -> DatePicker
 close (DatePicker model) =
     DatePicker
