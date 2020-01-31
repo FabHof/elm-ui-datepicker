@@ -38,7 +38,7 @@ type alias Settings =
     }
 
 
-{-| Handles all the internal state of the DatePicker
+{-| Has all the internal state of the DatePicker.
 -}
 type DatePicker
     = DatePicker Model
@@ -119,20 +119,16 @@ update msg (DatePicker model) =
             DatePicker { model | visibleMonth = month }
 
         OpenCalendar ->
-            DatePicker { model | open = True }
+            open (DatePicker model)
 
         CloseCalendar ->
-            DatePicker
-                { model
-                    | open = False
-                    , focused = Nothing
-                }
+            close (DatePicker model)
 
         NothingToDo ->
             DatePicker model
 
 
-{-| Reasonable default settings. You still have to give it some input.
+{-| Reasonable default settings.
 -}
 defaultSettings : Settings
 defaultSettings =
@@ -174,7 +170,7 @@ view :
         , onChange : ChangeEvent -> msg
         }
     -> Element msg
-view attributes ({ settings, datePicker,label, placeholder, selectedDate, onChange } as inputConfig) =
+view attributes ({ settings, datePicker, label, placeholder, selectedDate, onChange } as inputConfig) =
     let
         (DatePicker model) =
             datePicker
@@ -199,8 +195,15 @@ view attributes ({ settings, datePicker,label, placeholder, selectedDate, onChan
                 []
     in
     Element.el
-        ((Events.onClick <| onChange <| PickerChanged OpenCalendar)
-            :: attributes
+        (if model.open then
+            attributes
+
+         else
+            (Events.onClick <|
+                onChange <|
+                    PickerChanged OpenCalendar
+            )
+                :: attributes
         )
     <|
         Input.text
@@ -323,7 +326,18 @@ arrowKeyDownFocusChange ({ model } as config) =
                 )
 
     else
-        Element.below Element.none
+        Element.htmlAttribute <|
+            Html.Events.on "keydown"
+                (Html.Events.keyCode
+                    |> Decode.andThen
+                        (\keycode ->
+                            if keycode == 13 then
+                                Decode.succeed <| config.onChange <| PickerChanged OpenCalendar
+
+                            else
+                                Decode.fail "Not enter"
+                        )
+                )
 
 
 calendarView :
@@ -333,7 +347,6 @@ calendarView config =
     [ Element.below <|
         Element.column
             [ preventDefaultOnMouseDown config
-            , preventClick config
             , Background.color <| Element.rgb255 255 255 255
             , Border.width 1
             , padding 8
@@ -526,7 +539,11 @@ open (DatePicker model) =
 
 close : DatePicker -> DatePicker
 close (DatePicker model) =
-    DatePicker { model | open = False }
+    DatePicker
+        { model
+            | open = False
+            , focused = Nothing
+        }
 
 
 
@@ -540,18 +557,3 @@ preventDefaultOnMouseDown config =
     Element.htmlAttribute <|
         Html.Events.preventDefaultOn "mousedown" <|
             Decode.succeed ( config.onChange <| PickerChanged NothingToDo, True )
-
-
-{-| This is used, to prevent reopening the date clicker, when open is called inside update.
-Requires both stopPropagation and preventDefault to work
--}
-preventClick : Config msg -> Attribute msg
-preventClick config =
-    Element.htmlAttribute <|
-        Html.Events.custom "click" <|
-            Decode.succeed
-                { message =
-                    config.onChange <| PickerChanged NothingToDo
-                , stopPropagation = True
-                , preventDefault = True
-                }
