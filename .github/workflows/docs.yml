@@ -3,9 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - master    
-    paths-ignore:
-    - 'docs/**'
+      - master
 
 jobs:
   build-docs:
@@ -17,8 +15,11 @@ jobs:
       - name: Build example
         run:  elm make Simple.elm --output=../docs/index.html
         working-directory: ./examples
-      - name: Git Commit on Workflow
-        uses: matheusalbino/git-commit@v1.0.1
+      - name: GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v1.2.5
         with:
-          github-token : ${{ secrets.GITHUB_TOKEN }}
-          message: Update Documentation
+          target_branch: gh-pages
+          allow_empty_commit: false
+          build_dir: ./docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
