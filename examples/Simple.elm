@@ -7,6 +7,7 @@ import Element
 import Element.Input as Input
 import Html exposing (Html)
 import Maybe.Extra
+import Task
 
 
 type alias Model =
@@ -17,7 +18,8 @@ type alias Model =
 
 
 type Msg
-    = ToDatePicker (DatePicker.Msg Msg)
+    = DatePickerChanged ChangeEvent
+    | ChangeTody Date
 
 
 settings : DatePicker.Settings Msg
@@ -27,77 +29,70 @@ settings =
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        ( datePicker, datePickerFx ) =
-            DatePicker.init
-    in
     ( { date = Nothing
       , dateText = ""
-      , datePicker = datePicker
+      , datePicker = DatePicker.init
       }
-    , Cmd.map ToDatePicker datePickerFx
+    , Date.today |> Task.perform ChangeTody
     )
 
 
 view : Model -> Html Msg
 view model =
     Element.layout [] <|
-        Element.map ToDatePicker <|
-            DatePicker.view [Element.width Element.shrink, Element.centerX, Element.centerY]
-                { settings = settings
-                , datePicker = model.datePicker
-                , text = model.dateText
-                , selectedDate = model.date
-                }
+        DatePicker.view [ Element.width Element.shrink, Element.centerX, Element.centerY ]
+            { settings = settings
+            , datePicker = model.datePicker
+            , text = model.dateText
+            , selectedDate = model.date
+            , onChange = DatePickerChanged
+            }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ToDatePicker subMsg ->
-            let
-                ( newDatePicker, dateEvent ) =
-                    DatePicker.update subMsg model.datePicker
-
-                -- Remember to set the new date picker, no matter what the dateEvent is!
-                newModel =
-                    { model | datePicker = newDatePicker }
-            in
-            case dateEvent of
-                DateChanged newDate ->
-                    ( { newModel
-                        | date = Just newDate
-                        , dateText = Date.toIsoString newDate
+        DatePickerChanged changeEvent ->
+            case changeEvent of
+                DateChanged date ->
+                    -- remember to update both the date and the text
+                    ( { model
+                        | date = Just date
+                        , dateText = Date.toIsoString date
                       }
                     , Cmd.none
                     )
 
-                TextChanged newText ->
-                    ( { newModel
+                TextChanged text ->
+                    ( { model
                         | date =
-                            Date.fromIsoString newText
+                            -- parse the input text in any way you like
+                            Date.fromIsoString text
                                 |> Result.toMaybe
-                                |> Maybe.Extra.orElse newModel.date
-                        , dateText = newText
+                                |> Maybe.Extra.orElse model.date
+                        , dateText = text
                       }
                     , Cmd.none
                     )
 
                 DateCleared ->
-                    ( { newModel
-                        | date = Nothing
+                    ( { model
+                        | date =
+                            Nothing
                         , dateText = ""
                       }
                     , Cmd.none
                     )
 
-                Message myMsg ->
-                    update myMsg model
-
-                None ->
-                    ( newModel
+                PickerChanged subMsg ->
+                    ( { model | datePicker = DatePicker.update subMsg model.datePicker }
                     , Cmd.none
                     )
+
+        ChangeTody today ->
+            ( { model | datePicker = DatePicker.setToday today model.datePicker }
+            , Cmd.none
+            )
 
 
 main : Program () Model Msg

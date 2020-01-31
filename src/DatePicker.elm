@@ -1,19 +1,11 @@
-module DatePicker exposing
-    ( view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, update
-    , labelAbove, labelBelow, labelLeft, labelRight, labelHidden, placeholder
-    )
+module DatePicker exposing (view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, initWithToday, setToday, update)
 
 {-|
 
 
 # Main
 
-@docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, update
-
-
-# Labels and Placeholders
-
-@docs labelAbove, labelBelow, labelLeft, labelRight, labelHidden, placeholder
+@docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, initWithToday, setToday, update
 
 -}
 
@@ -23,19 +15,18 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
-import Element.Input as Input exposing (Label, Placeholder)
+import Element.Input as Input
 import Html.Events
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
-import Task
 import Time exposing (Month(..), Weekday(..))
 
 
 {-| Settings are the sutff you probably care about, but want to only set once for a given DatePicker.
 -}
 type alias Settings msg =
-    { label : Input.Label (Msg msg)
-    , placeholder : Maybe (Input.Placeholder (Msg msg))
+    { label : Input.Label msg
+    , placeholder : Maybe (Input.Placeholder msg)
     , firstDayOfWeek : Weekday
     , focusColor : Element.Color
     }
@@ -56,70 +47,67 @@ type alias Model =
 
 
 {-| -}
-init : ( DatePicker, Cmd (Msg msg) )
+init : DatePicker
 init =
-    ( DatePicker
+    DatePicker
         { open = False
         , focused = Nothing
         , today = Date.fromOrdinalDate 1 1
         }
-    , Date.today |> Task.perform ChangeToday
-    )
 
 
 {-| -}
-type Msg msg
-    = ChangeDate Date
-    | ChangeText String
-    | ChangeFocus Date
-    | ChangeToday Date
+initWithToday : Date -> DatePicker
+initWithToday today =
+    DatePicker
+        { open = False
+        , focused = Nothing
+        , today = today
+        }
+
+
+{-| -}
+setToday : Date -> DatePicker -> DatePicker
+setToday today (DatePicker model) =
+    DatePicker { model | today = today }
+
+
+{-| -}
+type Msg
+    = ChangeFocus Date
     | OpenCalendar
     | CloseCalendar
     | NothingToDo
-    | ExternalMsg msg
 
 
 {-| -}
-type ChangeEvent msg
+type ChangeEvent
     = DateChanged Date
-    | DateCleared
     | TextChanged String
-    | Message msg
-    | None
+    | DateCleared
+    | PickerChanged Msg
 
 
 {-| -}
-update : Msg msg -> DatePicker -> ( DatePicker, ChangeEvent msg )
+update : Msg -> DatePicker -> DatePicker
 update msg (DatePicker model) =
     case msg of
-        ChangeToday today ->
-            ( DatePicker { model | today = today }, None )
-
         ChangeFocus focus ->
-            ( DatePicker { model | focused = Just focus }, None )
-
-        ChangeDate date ->
-            ( DatePicker { model | focused = Just date }, DateChanged date )
-
-        ChangeText text ->
-            ( DatePicker model, TextChanged text )
+            DatePicker { model | focused = Just focus }
 
         OpenCalendar ->
-            ( DatePicker { model | open = True }, None )
+            DatePicker { model | open = True }
 
         CloseCalendar ->
-            ( DatePicker { model | open = False }, None )
+            DatePicker { model | open = False }
 
         NothingToDo ->
-            ( DatePicker model, None )
-
-        ExternalMsg subMsg ->
-            ( DatePicker model, Message subMsg )
+            DatePicker model
 
 
 {-| Reasonable default settings. You still have to give it some input.
 -}
-defaultSettings : Input.Label (Msg msg) -> Settings msg
+defaultSettings : Input.Label msg -> Settings msg
 defaultSettings label =
     { placeholder = Nothing
     , label = label
@@ -134,16 +122,17 @@ type alias Config msg =
     , text : String
     , selectedDate : Maybe Date
     , visibleMonth : Date
+    , onChange : ChangeEvent -> msg
     }
 
 
 {-| This view function is a wrapper arround `Input.text`. It needs the following things to work:
 
-- `List (Attribute Msg)` is given directly to `Input.text`.
-- `Settings Msg` is the stuff you care about, but probably want to set only once.
-- `DatePicker` is the internal model i.e. the stuff you probably do not care about.
-- `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
-- `selectedDate` is only used to highlight the date when the datepicker is open. It's up to you to keep the text and selectedDate in sync.
+  - `List (Attribute Msg)` is given directly to `Input.text`.
+  - `Settings Msg` is the stuff you care about, but probably want to set only once.
+  - `DatePicker` is the internal model i.e. the stuff you probably do not care about.
+  - `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
+  - `selectedDate` is only used to highlight the date when the datepicker is open. It's up to you to keep the text and selectedDate in sync.
 
 -}
 view :
@@ -153,9 +142,10 @@ view :
         , datePicker : DatePicker
         , text : String
         , selectedDate : Maybe Date
+        , onChange : ChangeEvent -> msg
         }
-    -> Element (Msg msg)
-view attributes { settings, datePicker, text, selectedDate } =
+    -> Element msg
+view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig) =
     let
         (DatePicker model) =
             datePicker
@@ -169,9 +159,10 @@ view attributes { settings, datePicker, text, selectedDate } =
         config =
             { settings = settings
             , model = model
-            , text = text
+            , text = inputConfig.text
             , selectedDate = selectedDate
             , visibleMonth = visibleMonth
+            , onChange = onChange
             }
 
         calendar =
@@ -180,18 +171,15 @@ view attributes { settings, datePicker, text, selectedDate } =
 
             else
                 []
-
-        extAttributes =
-            List.map (Element.mapAttribute ExternalMsg) attributes
     in
     Input.text
         (calendar
-            ++ extAttributes
-            ++ [ Events.onFocus OpenCalendar
-               , Events.onLoseFocus CloseCalendar
+            ++ attributes
+            ++ [ Events.onFocus <| onChange <| PickerChanged OpenCalendar
+               , Events.onLoseFocus <| onChange <| PickerChanged CloseCalendar
                ]
         )
-        { onChange = ChangeText
+        { onChange = onChange << TextChanged
         , text = config.text
         , placeholder = settings.placeholder
         , label = settings.label
@@ -200,11 +188,11 @@ view attributes { settings, datePicker, text, selectedDate } =
 
 calendarView :
     Config msg
-    -> List (Attribute (Msg msg))
+    -> List (Attribute msg)
 calendarView config =
     [ Element.below <|
         Element.column
-            [ preventDefaultOnMouseDown
+            [ preventDefaultOnMouseDown config
             , Background.color <| Element.rgb255 255 255 255
             , Border.width 1
             , padding 8
@@ -216,7 +204,7 @@ calendarView config =
     ]
 
 
-calendarTable : Config msg -> Element (Msg msg)
+calendarTable : Config msg -> Element msg
 calendarTable config =
     Element.table [ spacing 4, centerX, centerY ]
         { data = currentWeeks config
@@ -224,7 +212,7 @@ calendarTable config =
         }
 
 
-calendarColumns : Config msg -> List (Element.Column (Week Date) (Msg msg))
+calendarColumns : Config msg -> List (Element.Column (Week Date) msg)
 calendarColumns config =
     let
         weekDays =
@@ -254,13 +242,16 @@ calendarWeekDays firstDayOfWeek =
     Week.fromListWithDefault "X" (List.map (Date.format "EEEEEE") days)
 
 
-calendarHeader : Config msg -> Element (Msg msg)
-calendarHeader { visibleMonth } =
+calendarHeader : Config msg -> Element msg
+calendarHeader { visibleMonth, onChange } =
     Element.row [ Element.width Element.fill, padding 8, Font.bold ]
         [ Element.el
             [ alignLeft
             , Element.pointer
-            , Events.onClick <| ChangeFocus (Date.add Date.Months -1 visibleMonth)
+            , Events.onClick <|
+                onChange <|
+                    PickerChanged <|
+                        ChangeFocus (Date.add Date.Months -1 visibleMonth)
             ]
           <|
             Element.text "<<"
@@ -270,32 +261,31 @@ calendarHeader { visibleMonth } =
         , Element.el
             [ alignRight
             , Element.pointer
-            , Events.onClick <| ChangeFocus (Date.add Date.Months 1 visibleMonth)
+            , Events.onClick <|
+                onChange <|
+                    PickerChanged <|
+                        ChangeFocus (Date.add Date.Months 1 visibleMonth)
             ]
           <|
             Element.text ">>"
         ]
 
 
-dayView : Config msg -> Date -> Element (Msg msg)
+dayView : Config msg -> Date -> Element msg
 dayView ({ model, settings } as config) day =
     let
         focusedBackgr =
             Background.color (Element.rgb255 0x6C 0x75 0x7D)
 
         focusedAttr =
-            model.focused
-                |> Maybe.andThen
-                    (\focusedDate ->
-                        if Date.month focusedDate /= Date.month day then
-                            Just (Font.color (Element.rgb255 0x80 0x80 0x80))
+            if Date.month config.visibleMonth /= Date.month day then
+                Just (Font.color (Element.rgb255 0x80 0x80 0x80))
 
-                        else if focusedDate == day then
-                            Just focusedBackgr
+            else if config.visibleMonth == day then
+                Just focusedBackgr
 
-                        else
-                            Nothing
-                    )
+            else
+                Nothing
 
         todayAttr =
             if model.today == day then
@@ -328,7 +318,11 @@ dayView ({ model, settings } as config) day =
                 []
                 [ focusedAttr, todayAttr, selectedAttr ]
     in
-    Element.el (Events.onClick (ChangeDate day) :: Element.pointer :: calculatedAttr)
+    Element.el
+        ((Events.onClick <| config.onChange <| DateChanged day)
+            :: Element.pointer
+            :: calculatedAttr
+        )
         (Element.el [ centerX, centerY ] <| Element.text <| Date.format "dd" day)
 
 
@@ -384,54 +378,13 @@ weekdayToInterval weekday =
             Date.Sunday
 
 
-{-| -}
-labelAbove : List (Attribute msg) -> Element msg -> Label (Msg msg)
-labelAbove =
-    fromInputLabel Input.labelAbove
-
-
-{-| -}
-labelBelow : List (Attribute msg) -> Element msg -> Label (Msg msg)
-labelBelow =
-    fromInputLabel Input.labelBelow
-
-
-{-| -}
-labelLeft : List (Attribute msg) -> Element msg -> Label (Msg msg)
-labelLeft =
-    fromInputLabel Input.labelLeft
-
-
-{-| -}
-labelRight : List (Attribute msg) -> Element msg -> Label (Msg msg)
-labelRight =
-    fromInputLabel Input.labelRight
-
-
-{-| -}
-labelHidden : String -> Label (Msg msg)
-labelHidden =
-    Input.labelHidden
-
-
-{-| -}
-placeholder : List (Attribute msg) -> Element msg -> Placeholder (Msg msg)
-placeholder attr el =
-    Input.placeholder (List.map (Element.mapAttribute ExternalMsg) attr) (Element.map ExternalMsg el)
-
-
-fromInputLabel : (List (Attribute (Msg msg)) -> Element (Msg msg) -> Label (Msg msg)) -> List (Attribute msg) -> Element msg -> Label (Msg msg)
-fromInputLabel fn attr el =
-    fn (List.map (Element.mapAttribute ExternalMsg) attr) (Element.map ExternalMsg el)
-
-
 
 -- HELPERS
 
 
 {-| -}
-preventDefaultOnMouseDown : Attribute (Msg msg)
-preventDefaultOnMouseDown =
+preventDefaultOnMouseDown : Config msg -> Attribute msg
+preventDefaultOnMouseDown config =
     Element.htmlAttribute <|
         Html.Events.preventDefaultOn "mousedown" <|
-            Decode.succeed ( NothingToDo, True )
+            Decode.succeed ( config.onChange <| PickerChanged NothingToDo, True )
