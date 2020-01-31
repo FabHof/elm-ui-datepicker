@@ -1,4 +1,7 @@
-module DatePicker exposing (view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, initWithToday, setToday, update)
+module DatePicker exposing
+    ( view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, initWithToday, setToday, update
+    , close, open
+    )
 
 {-|
 
@@ -6,6 +9,11 @@ module DatePicker exposing (view, DatePicker, Msg, Settings, ChangeEvent(..), de
 # Main
 
 @docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, initWithToday, setToday, update
+
+
+# Changing
+
+@doc open, close
 
 -}
 
@@ -188,19 +196,23 @@ view attributes ({ settings, datePicker, selectedDate, onChange } as inputConfig
             else
                 []
     in
-    Input.text
-        (calendar
-            ++ attributes
-            ++ [ Events.onFocus <| onChange <| PickerChanged OpenCalendar
-               , Events.onLoseFocus <| onChange <| PickerChanged CloseCalendar
-               , arrowKeyDownFocusChange config
-               ]
+    Element.el
+        ((Events.onClick <| onChange <| PickerChanged OpenCalendar)
+            :: attributes
         )
-        { onChange = onChange << TextChanged
-        , text = config.text
-        , placeholder = settings.placeholder
-        , label = settings.label
-        }
+    <|
+        Input.text
+            (calendar
+                ++ [ Events.onFocus <| onChange <| PickerChanged OpenCalendar
+                   , Events.onLoseFocus <| onChange <| PickerChanged CloseCalendar
+                   , arrowKeyDownFocusChange config
+                   ]
+            )
+            { onChange = onChange << TextChanged
+            , text = config.text
+            , placeholder = settings.placeholder
+            , label = settings.label
+            }
 
 
 arrowKeyDownFocusChange : Config msg -> Attribute msg
@@ -319,6 +331,7 @@ calendarView config =
     [ Element.below <|
         Element.column
             [ preventDefaultOnMouseDown config
+            , preventClick config
             , Background.color <| Element.rgb255 255 255 255
             , Border.width 1
             , padding 8
@@ -504,13 +517,38 @@ weekdayToInterval weekday =
             Date.Sunday
 
 
+open : DatePicker -> DatePicker
+open (DatePicker model) =
+    DatePicker { model | open = True }
+
+
+close : DatePicker -> DatePicker
+close (DatePicker model) =
+    DatePicker { model | open = False }
+
+
 
 -- HELPERS
 
 
-{-| -}
+{-| This is used, to prevent closing the date picker, when clicking to change the month -}
 preventDefaultOnMouseDown : Config msg -> Attribute msg
 preventDefaultOnMouseDown config =
     Element.htmlAttribute <|
         Html.Events.preventDefaultOn "mousedown" <|
             Decode.succeed ( config.onChange <| PickerChanged NothingToDo, True )
+
+
+{-| This is used, to prevent reopening the date clicker, when open is called inside update.
+Requires both stopPropagation and preventDefault to work
+-}
+preventClick : Config msg -> Attribute msg
+preventClick config =
+    Element.htmlAttribute <|
+        Html.Events.custom "click" <|
+            Decode.succeed
+                { message =
+                    config.onChange <| PickerChanged NothingToDo
+                , stopPropagation = True
+                , preventDefault = True
+                }

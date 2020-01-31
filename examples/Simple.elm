@@ -59,6 +59,7 @@ update msg model =
                     ( { model
                         | date = Just date
                         , dateText = Date.toIsoString date
+                        , datePicker = DatePicker.close model.datePicker
                       }
                     , Cmd.none
                     )
