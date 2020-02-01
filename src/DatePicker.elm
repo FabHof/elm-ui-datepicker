@@ -269,23 +269,68 @@ update msg (Model picker) =
 
 
 {-| -}
-type alias Settings =
+type alias Settings msg =
     { firstDayOfWeek : Weekday
-    , focusColor : Element.Color
+    , pickerAttributes : List (Attribute msg)
+    , headerAttributes : List (Attribute msg)
+    , tableAttributes : List (Attribute msg)
+    , dayAttributes : List (Attribute msg)
+    , wrongMonthDayAttributes : List (Attribute msg)
+    , todayDayAttributes : List (Attribute msg)
+    , focusedDayAttributes : List (Attribute msg)
+    , selectedDayAttributes : List (Attribute msg)
+    , previousMonthElement : Element msg
+    , nextMonthElement : Element msg
     }
 
 
 {-| Reasonable default settings.
 -}
-defaultSettings : Settings
+defaultSettings : Settings msg
 defaultSettings =
     { firstDayOfWeek = Mon
-    , focusColor = Element.rgb255 0x00 0x7B 0xFF
+    , pickerAttributes =
+        [ Border.width 1
+        , Border.color (Element.rgb255 186 189 182)
+        , Border.roundEach
+            { topLeft = 0
+            , topRight = 0
+            , bottomLeft = 3
+            , bottomRight = 3
+            }
+        , Element.moveDown 3
+        , padding 8
+        , spacing 4
+        , Background.color <| Element.rgb255 255 255 255
+        ]
+    , headerAttributes =
+        [ Element.width Element.fill
+        , padding 8
+        , Font.bold
+        ]
+    , tableAttributes = [ spacing 4, centerX, centerY ]
+    , dayAttributes =
+        [ Element.pointer
+        , Element.paddingXY 4 2
+        , Border.rounded 3
+        ]
+    , wrongMonthDayAttributes =
+        [ Font.color (Element.rgb255 0x80 0x80 0x80) ]
+    , todayDayAttributes =
+        [ Background.color (Element.rgb255 0xFF 0xC1 0x9B) ]
+    , focusedDayAttributes =
+        [ Background.color (Element.rgb255 0x9B 0xCB 0xFF) ]
+    , selectedDayAttributes =
+        [ Background.color (Element.rgb255 0x00 0x7B 0xFF) ]
+    , previousMonthElement =
+        Element.text "◄"
+    , nextMonthElement =
+        Element.text "►"
     }
 
 
 type alias Config msg =
-    { settings : Settings
+    { settings : Settings msg
     , label : Input.Label msg
     , placeholder : Maybe (Input.Placeholder msg)
     , picker : Picker
@@ -307,7 +352,7 @@ input :
         , label : Input.Label msg
         , placeholder : Maybe (Input.Placeholder msg)
         , model : Model
-        , settings : Settings
+        , settings : Settings msg
         }
     -> Element msg
 input attributes ({ settings, model, label, placeholder, selected, onChange } as inputConfig) =
@@ -326,14 +371,14 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
             , onChange = onChange
             }
 
-        calendar =
+        pickerEl =
             if picker.open then
                 pickerView config
 
             else
                 []
 
-        pickerAttributes =
+        inputAttributes =
             if picker.open then
                 attributes
 
@@ -344,9 +389,9 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
                 )
                     :: attributes
     in
-    Element.el pickerAttributes
+    Element.el inputAttributes
         (Input.text
-            (calendar
+            (pickerEl
                 ++ [ Events.onFocus <| onChange <| PickerChanged Open
                    , Events.onLoseFocus <| onChange <| PickerChanged Close
                    , arrowKeyDownFocusChange config
@@ -392,7 +437,7 @@ arrowKeyDownFocusChange ({ picker } as config) =
 
                 -- On Left and Right, only move focus if we have something focused or if the text is empty
                 -- Prevent Default (move cursor) when we move focus.
-                -- TODO decide on *best* arrow key behaviour
+                -- TODO decide on *best* arrow key behavior
                 37 ->
                     -- ArrowLeft
                     case picker.focused of
@@ -484,15 +529,12 @@ arrowKeyDownFocusChange ({ picker } as config) =
 pickerView :
     Config msg
     -> List (Attribute msg)
-pickerView config =
+pickerView ({ settings } as config) =
     [ Element.below <|
         Element.column
-            [ preventDefaultOnMouseDown config
-            , Background.color <| Element.rgb255 255 255 255
-            , Border.width 1
-            , padding 8
-            , spacing 4
-            ]
+            (preventDefaultOnMouseDown config
+                :: settings.pickerAttributes
+            )
             [ pickerHeader config
             , pickerTable config
             ]
@@ -500,8 +542,8 @@ pickerView config =
 
 
 pickerTable : Config msg -> Element msg
-pickerTable config =
-    Element.table [ spacing 4, centerX, centerY ]
+pickerTable ({ settings } as config) =
+    Element.table settings.tableAttributes
         { data = currentWeeks config
         , columns = pickerColumns config
         }
@@ -526,8 +568,8 @@ pickerColumns config =
 
 
 pickerHeader : Config msg -> Element msg
-pickerHeader { visibleMonth, onChange } =
-    Element.row [ Element.width Element.fill, padding 8, Font.bold ]
+pickerHeader { visibleMonth, onChange, settings } =
+    Element.row settings.headerAttributes
         [ Element.el
             [ alignLeft
             , Element.pointer
@@ -537,7 +579,7 @@ pickerHeader { visibleMonth, onChange } =
                         ChangeMonth (Date.add Date.Months -1 visibleMonth)
             ]
           <|
-            Element.text "<<"
+            settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
                 Date.format "MMMM YYYY" visibleMonth
@@ -550,63 +592,45 @@ pickerHeader { visibleMonth, onChange } =
                         ChangeMonth (Date.add Date.Months 1 visibleMonth)
             ]
           <|
-            Element.text ">>"
+            settings.nextMonthElement
         ]
 
 
 dayView : Config msg -> Date -> Element msg
 dayView ({ picker, settings } as config) day =
     let
-        focusedBackground =
-            Background.color (Element.rgb255 0x6C 0x75 0x7D)
+        attributesForThisDay =
+            List.concat
+                [ settings.dayAttributes
+                , if Date.month config.visibleMonth /= Date.month day then
+                    settings.wrongMonthDayAttributes
 
-        wrongMonthAttr =
-            if Date.month config.visibleMonth /= Date.month day then
-                Just (Font.color (Element.rgb255 0x80 0x80 0x80))
+                  else
+                    []
+                , if picker.today == day then
+                    settings.todayDayAttributes
 
-            else
-                Nothing
+                  else
+                    []
+                , if picker.focused == Just day then
+                    settings.focusedDayAttributes
 
-        focusedAttr =
-            if picker.focused == Just day then
-                Just focusedBackground
+                  else
+                    []
+                , if config.selected == Just day then
+                    settings.selectedDayAttributes
 
-            else
-                Nothing
-
-        todayAttr =
-            if picker.today == day then
-                Just (Border.width 1)
-
-            else
-                Nothing
-
-        selectedAttr =
-            if config.selected == Just day then
-                Just (Background.color settings.focusColor)
-
-            else
-                Nothing
-
-        noNothing a b =
-            case a of
-                Just x ->
-                    x :: b
-
-                Nothing ->
-                    b
-
-        calculatedAttr =
-            List.foldl noNothing
-                []
-                [ focusedAttr, todayAttr, selectedAttr, wrongMonthAttr ]
+                  else
+                    []
+                ]
     in
     Element.el
         ((Events.onClick <| config.onChange <| DateChanged day)
-            :: Element.pointer
-            :: calculatedAttr
+            -- TODO mouse focus?
+            -- :: (Events.onMouseEnter <| config.onChange <| PickerChanged <| ChangeFocus <| Just day)
+            :: attributesForThisDay
         )
-        (Element.el [ centerX, centerY ] <| Element.text <| Date.format "dd" day)
+        (Element.text <| Date.format "dd" day)
 
 
 

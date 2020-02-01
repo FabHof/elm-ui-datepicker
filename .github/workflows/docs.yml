@@ -13,7 +13,7 @@ jobs:
       - name: Setup Elm
         uses: justgook/setup-elm@v1      
       - name: Build example
-        run:  elm make Simple.elm --output=../docs/index.html
+        run:  elm make CloseOnEnter.elm --output=../docs/index.html
         working-directory: ./examples
       - name: GitHub Pages
         uses: crazy-max/ghaction-github-pages@v1.2.5
