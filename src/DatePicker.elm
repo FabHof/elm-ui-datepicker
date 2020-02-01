@@ -1,14 +1,14 @@
 module DatePicker exposing
-    ( view, DatePicker, Msg, Settings, ChangeEvent(..), defaultSettings, init, initWithToday, setToday, update
+    ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
     , close, open
     )
 
 {-|
 
 
-# Main
+# Basic Usage
 
-@docs view, DatePicker, Msg, Settings, ChangeEvent, defaultSettings, init, initWithToday, setToday, update
+@docs input, Model, init, setToday, ChangeEvent, update, Settings, defaultSettings, initWithToday
 
 
 # Helpers
@@ -32,22 +32,17 @@ import Json.Decode as Decode
 import Time exposing (Month(..), Weekday(..))
 
 
-{-| Settings are the stuff you probably care about, but want to only set once for a given DatePicker.
+
+-- MODEL
+
+
+{-| Has all the internal picker of the date picker.
 -}
-type alias Settings =
-    { firstDayOfWeek : Weekday
-    , focusColor : Element.Color
-    }
+type Model
+    = Model Picker
 
 
-{-| Has all the internal state of the DatePicker.
--}
-type DatePicker
-    = DatePicker Model
-
-
-{-| -}
-type alias Model =
+type alias Picker =
     { open : Bool
     , focused : Maybe Date
     , today : Date
@@ -55,10 +50,23 @@ type alias Model =
     }
 
 
-{-| -}
-init : DatePicker
+{-| Gives you the initial model of the date picker.
+Easy to us in you own init function:
+
+(You probably want to get todays date to give it to the date picker using [DatePicker.setToday](DatePicker#setToday))
+
+    init =
+        ( { date = Nothing
+          , dateText = ""
+          , pickerModel = DatePicker.init
+          }
+        , Task.perform SetToday Date.today
+        )
+
+-}
+init : Model
 init =
-    DatePicker
+    Model
         { open = False
         , focused = Nothing
         , today = Date.fromOrdinalDate 1 1
@@ -66,10 +74,11 @@ init =
         }
 
 
-{-| -}
-initWithToday : Date -> DatePicker
+{-| Gives you the initial model of the date picker and sets the given date as today.
+-}
+initWithToday : Date -> Model
 initWithToday today =
-    DatePicker
+    Model
         { open = False
         , focused = Nothing
         , today = today
@@ -77,22 +86,147 @@ initWithToday today =
         }
 
 
-{-| -}
-setToday : Date -> DatePicker -> DatePicker
-setToday today (DatePicker model) =
-    DatePicker { model | today = today, visibleMonth = today }
+{-| Gives the date picker information about what date it is today.
+Use this in your update function:
+
+    update msg model =
+        case msg of
+            SetToday today ->
+                ( { model
+                    | pickerModel =
+                        model.pickerModel
+                            |> DatePicker.setToday today
+                  }
+                , Cmd.none
+                )
+
+-}
+setToday : Date -> Model -> Model
+setToday today (Model picker) =
+    Model { picker | today = today, visibleMonth = today }
+
+
+{-| Closes the date picker.
+
+Common use case: close date picker on date input:
+
+    DateChanged date ->
+        ( { model
+            | date = Just date
+            , dateText = Date.toIsoString date
+            , pickerModel =
+                model.pickerModel
+                    |> DatePicker.close
+        }
+        , Cmd.none
+        )
+
+**Note**: the date picker will reopen on _enter_ and _click_.
+To prevent this, close the date picker on every update:
+
+    PickerChanged subMsg ->
+        ( { model
+            | pickerModel =
+                model.pickerModel
+                    |> DatePicker.update subMsg
+                    --picker will never open
+                    |> DatePicker.close
+            }
+        , Cmd.none
+        )
+
+-}
+close : Model -> Model
+close (Model picker) =
+    Model
+        { picker
+            | open = False
+            , focused = Nothing
+        }
+
+
+{-| Opens the date picker
+
+Example: start with open picker:
+
+    init : ( Model, Cmd Msg )
+    init =
+        ( { date = Nothing
+          , dateText = ""
+          , pickerModel =
+                DatePicker.init
+                    |> DatePicker.open
+          }
+        , Task.perform SetToday Date.today
+        )
+
+-}
+open : Model -> Model
+open (Model picker) =
+    Model { picker | open = True }
+
+
+
+--  UPDATE
 
 
 {-| -}
 type Msg
     = ChangeFocus (Maybe Date)
     | ChangeMonth Date
-    | OpenCalendar
-    | CloseCalendar
+    | Open
+    | Close
     | NothingToDo
 
 
-{-| -}
+{-| Simple example of us in a update function:
+
+    update msg model =
+        case msg of
+            ChangePicker changeEvent ->
+                case changeEvent of
+                    DateChanged date ->
+                        -- update both date and text
+                        ( { model
+                            | date = Just date
+                            , dateText = Date.toIsoString date
+                          }
+                        , Cmd.none
+                        )
+
+                    TextChanged text ->
+                        ( { model
+                            | date =
+                                -- parse the text in any way you like
+                                Date.fromIsoString text
+                                    |> Result.toMaybe
+                                    |> Maybe.Extra.orElse model.date
+                            , dateText = text
+                          }
+                        , Cmd.none
+                        )
+
+                    DateCleared ->
+                        ( { model
+                            | date =
+                                Nothing
+                            , dateText = ""
+                          }
+                        , Cmd.none
+                        )
+
+                    PickerChanged subMsg ->
+                        -- internal stuff changed
+                        -- call DatePicker.update
+                        ( { model
+                            | pickerModel =
+                                model.pickerModel
+                                    |> DatePicker.update subMsg
+                          }
+                        , Cmd.none
+                        )
+
+-}
 type ChangeEvent
     = DateChanged Date
     | TextChanged String
@@ -101,12 +235,12 @@ type ChangeEvent
 
 
 {-| -}
-update : Msg -> DatePicker -> DatePicker
-update msg (DatePicker model) =
+update : Msg -> Model -> Model
+update msg (Model picker) =
     case msg of
         ChangeFocus focus ->
-            DatePicker
-                { model
+            Model
+                { picker
                     | focused = focus
                     , visibleMonth =
                         case focus of
@@ -114,20 +248,31 @@ update msg (DatePicker model) =
                                 date
 
                             Nothing ->
-                                model.visibleMonth
+                                picker.visibleMonth
                 }
 
         ChangeMonth month ->
-            DatePicker { model | visibleMonth = month }
+            Model { picker | visibleMonth = month }
 
-        OpenCalendar ->
-            open (DatePicker model)
+        Open ->
+            open (Model picker)
 
-        CloseCalendar ->
-            close (DatePicker model)
+        Close ->
+            close (Model picker)
 
         NothingToDo ->
-            DatePicker model
+            Model picker
+
+
+
+-- VIEW
+
+
+{-| -}
+type alias Settings =
+    { firstDayOfWeek : Weekday
+    , focusColor : Element.Color
+    }
 
 
 {-| Reasonable default settings.
@@ -143,75 +288,67 @@ type alias Config msg =
     { settings : Settings
     , label : Input.Label msg
     , placeholder : Maybe (Input.Placeholder msg)
-    , model : Model
+    , picker : Picker
     , text : String
-    , selectedDate : Maybe Date
+    , selected : Maybe Date
     , visibleMonth : Date
     , onChange : ChangeEvent -> msg
     }
 
 
-{-| This view function is a wrapper around `Input.text`. It needs the following things to work:
-
-  - `List (Attribute Msg)` is given directly to `Input.text`.
-  - `Settings Msg` is the stuff you care about, but probably want to set only once.
-  - `DatePicker` is the internal model i.e. the stuff you probably do not care about.
-  - `text` is given directly to `Input.text`. Yes, you have to handle user text input all by yourself.
-  - `selectedDate` is only used to highlight the date when the date picker is open. It's up to you to keep the text and selectedDate in sync.
-
+{-| This view function is a wrapper around `Input.text`, with a more complex `onChange`, a `selected` date, the internal `model` and some `settings`
 -}
-view :
+input :
     List (Attribute msg)
     ->
-        { settings : Settings
+        { onChange : ChangeEvent -> msg
+        , selected : Maybe Date
+        , text : String
         , label : Input.Label msg
         , placeholder : Maybe (Input.Placeholder msg)
-        , datePicker : DatePicker
-        , text : String
-        , selectedDate : Maybe Date
-        , onChange : ChangeEvent -> msg
+        , model : Model
+        , settings : Settings
         }
     -> Element msg
-view attributes ({ settings, datePicker, label, placeholder, selectedDate, onChange } as inputConfig) =
+input attributes ({ settings, model, label, placeholder, selected, onChange } as inputConfig) =
     let
-        (DatePicker model) =
-            datePicker
+        (Model picker) =
+            model
 
-        -- Internally, we use the config with the actual model and visibleMonth
         config =
             { settings = settings
-            , model = model
+            , picker = picker
             , text = inputConfig.text
             , label = label
             , placeholder = placeholder
-            , selectedDate = selectedDate
-            , visibleMonth = model.visibleMonth
+            , selected = selected
+            , visibleMonth = picker.visibleMonth
             , onChange = onChange
             }
 
         calendar =
-            if model.open then
-                calendarView config
+            if picker.open then
+                pickerView config
 
             else
                 []
-    in
-    Element.el
-        (if model.open then
-            attributes
 
-         else
-            (Events.onClick <|
-                onChange <|
-                    PickerChanged OpenCalendar
-            )
-                :: attributes
-        )
-    <|
-        Input.text
+        pickerAttributes =
+            if picker.open then
+                attributes
+
+            else
+                (PickerChanged Open
+                    |> onChange
+                    |> Events.onClick
+                )
+                    :: attributes
+    in
+    Element.el pickerAttributes
+        (Input.text
             (calendar
-                ++ [ Events.onFocus <| onChange <| PickerChanged OpenCalendar
-                   , Events.onLoseFocus <| onChange <| PickerChanged CloseCalendar
+                ++ [ Events.onFocus <| onChange <| PickerChanged Open
+                   , Events.onLoseFocus <| onChange <| PickerChanged Close
                    , arrowKeyDownFocusChange config
                    ]
             )
@@ -220,18 +357,19 @@ view attributes ({ settings, datePicker, label, placeholder, selectedDate, onCha
             , placeholder = placeholder
             , label = label
             }
+        )
 
 
 arrowKeyDownFocusChange : Config msg -> Attribute msg
-arrowKeyDownFocusChange ({ model } as config) =
+arrowKeyDownFocusChange ({ picker } as config) =
     let
         focus =
-            case model.focused of
+            case picker.focused of
                 Just date ->
                     date
 
                 Nothing ->
-                    Maybe.withDefault model.today config.selectedDate
+                    Maybe.withDefault picker.today config.selected
 
         toFocusMsg date =
             config.onChange <| PickerChanged <| ChangeFocus <| Just date
@@ -254,9 +392,10 @@ arrowKeyDownFocusChange ({ model } as config) =
 
                 -- On Left and Right, only move focus if we have something focused or if the text is empty
                 -- Prevent Default (move cursor) when we move focus.
+                -- TODO decide on *best* arrow key behaviour
                 37 ->
                     -- ArrowLeft
-                    case model.focused of
+                    case picker.focused of
                         Just date ->
                             ( Date.add Date.Days -1 date
                                 |> toFocusMsg
@@ -279,7 +418,7 @@ arrowKeyDownFocusChange ({ model } as config) =
 
                 39 ->
                     -- ArrowRight
-                    case model.focused of
+                    case picker.focused of
                         Just date ->
                             ( Date.add Date.Days 1 date
                                 |> toFocusMsg
@@ -302,7 +441,7 @@ arrowKeyDownFocusChange ({ model } as config) =
 
                 13 ->
                     -- Enter
-                    case model.focused of
+                    case picker.focused of
                         Just date ->
                             ( config.onChange <| DateChanged date, False )
 
@@ -320,7 +459,7 @@ arrowKeyDownFocusChange ({ model } as config) =
                     , False
                     )
     in
-    if model.open then
+    if picker.open then
         Element.htmlAttribute <|
             Html.Events.preventDefaultOn "keydown"
                 (Html.Events.keyCode
@@ -334,7 +473,7 @@ arrowKeyDownFocusChange ({ model } as config) =
                     |> Decode.andThen
                         (\keycode ->
                             if keycode == 13 then
-                                Decode.succeed <| config.onChange <| PickerChanged OpenCalendar
+                                Decode.succeed <| config.onChange <| PickerChanged Open
 
                             else
                                 Decode.fail "Not enter"
@@ -342,10 +481,10 @@ arrowKeyDownFocusChange ({ model } as config) =
                 )
 
 
-calendarView :
+pickerView :
     Config msg
     -> List (Attribute msg)
-calendarView config =
+pickerView config =
     [ Element.below <|
         Element.column
             [ preventDefaultOnMouseDown config
@@ -354,22 +493,22 @@ calendarView config =
             , padding 8
             , spacing 4
             ]
-            [ calendarHeader config
-            , calendarTable config
+            [ pickerHeader config
+            , pickerTable config
             ]
     ]
 
 
-calendarTable : Config msg -> Element msg
-calendarTable config =
+pickerTable : Config msg -> Element msg
+pickerTable config =
     Element.table [ spacing 4, centerX, centerY ]
         { data = currentWeeks config
-        , columns = calendarColumns config
+        , columns = pickerColumns config
         }
 
 
-calendarColumns : Config msg -> List (Element.Column (Week Date) msg)
-calendarColumns config =
+pickerColumns : Config msg -> List (Element.Column (Week Date) msg)
+pickerColumns config =
     let
         weekDays =
             calendarWeekDays config.settings.firstDayOfWeek
@@ -386,20 +525,8 @@ calendarColumns config =
     Week.toList (Week.indexedMap toColumn weekDays)
 
 
-calendarWeekDays : Weekday -> Week String
-calendarWeekDays firstDayOfWeek =
-    let
-        startDay =
-            Date.floor (weekdayToInterval firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
-
-        days =
-            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
-    in
-    Week.fromListWithDefault "X" (List.map (Date.format "EEEEEE") days)
-
-
-calendarHeader : Config msg -> Element msg
-calendarHeader { visibleMonth, onChange } =
+pickerHeader : Config msg -> Element msg
+pickerHeader { visibleMonth, onChange } =
     Element.row [ Element.width Element.fill, padding 8, Font.bold ]
         [ Element.el
             [ alignLeft
@@ -428,7 +555,7 @@ calendarHeader { visibleMonth, onChange } =
 
 
 dayView : Config msg -> Date -> Element msg
-dayView ({ model, settings } as config) day =
+dayView ({ picker, settings } as config) day =
     let
         focusedBackground =
             Background.color (Element.rgb255 0x6C 0x75 0x7D)
@@ -441,21 +568,21 @@ dayView ({ model, settings } as config) day =
                 Nothing
 
         focusedAttr =
-            if model.focused == Just day then
+            if picker.focused == Just day then
                 Just focusedBackground
 
             else
                 Nothing
 
         todayAttr =
-            if model.today == day then
+            if picker.today == day then
                 Just (Border.width 1)
 
             else
                 Nothing
 
         selectedAttr =
-            if config.selectedDate == Just day then
+            if config.selected == Just day then
                 Just (Background.color settings.focusColor)
 
             else
@@ -480,6 +607,22 @@ dayView ({ model, settings } as config) day =
             :: calculatedAttr
         )
         (Element.el [ centerX, centerY ] <| Element.text <| Date.format "dd" day)
+
+
+
+-- STUFF WITH WEEKS AND DAYS
+
+
+calendarWeekDays : Weekday -> Week String
+calendarWeekDays firstDayOfWeek =
+    let
+        startDay =
+            Date.floor (weekdayToInterval firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
+
+        days =
+            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
+    in
+    Week.fromListWithDefault "X" (List.map (Date.format "EEEEEE") days)
 
 
 currentWeeks : Config msg -> List (Week Date)
@@ -534,29 +677,11 @@ weekdayToInterval weekday =
             Date.Sunday
 
 
-{-| Sets the date picker state to open
--}
-open : DatePicker -> DatePicker
-open (DatePicker model) =
-    DatePicker { model | open = True }
+
+-- ADDITIONAL HELPERS
 
 
-{-| Sets the date picker state to closed
--}
-close : DatePicker -> DatePicker
-close (DatePicker model) =
-    DatePicker
-        { model
-            | open = False
-            , focused = Nothing
-        }
-
-
-
--- HELPERS
-
-
-{-| This is used, to prevent closing the date picker, when clicking to change the month
+{-| This is used, to prevent that the picker is closed unexpectedly.
 -}
 preventDefaultOnMouseDown : Config msg -> Attribute msg
 preventDefaultOnMouseDown config =

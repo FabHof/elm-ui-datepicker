@@ -1,4 +1,4 @@
-module Simple exposing (main)
+module CloseOnEnter exposing (main)
 
 import Browser
 import Date exposing (Date)
@@ -56,6 +56,9 @@ update msg model =
                     ( { model
                         | date = Just date
                         , dateText = Date.toIsoString date
+                        , pickerModel =
+                            model.pickerModel
+                                |> DatePicker.close
                       }
                     , Cmd.none
                     )
