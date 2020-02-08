@@ -3,7 +3,7 @@ module CustomDesign exposing (main)
 import Browser
 import Date exposing (Date)
 import DatePicker exposing (ChangeEvent(..))
-import Element exposing (padding, spacing)
+import Element exposing (padding)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
