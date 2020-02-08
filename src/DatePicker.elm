@@ -1,6 +1,7 @@
 module DatePicker exposing
     ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
     , close, open
+    , Language
     )
 
 {-|
@@ -16,6 +17,7 @@ module DatePicker exposing
 For when you want to be more in control
 
 @docs close, open
+@docs Language
 
 -}
 
@@ -44,7 +46,6 @@ type Model
 
 type alias Picker =
     { open : Bool
-    , focused : Maybe Date
     , today : Date
     , visibleMonth : Date
     }
@@ -68,7 +69,6 @@ init : Model
 init =
     Model
         { open = False
-        , focused = Nothing
         , today = Date.fromOrdinalDate 1 1
         , visibleMonth = Date.fromOrdinalDate 1 1
         }
@@ -80,7 +80,6 @@ initWithToday : Date -> Model
 initWithToday today =
     Model
         { open = False
-        , focused = Nothing
         , today = today
         , visibleMonth = today
         }
@@ -141,7 +140,6 @@ close (Model picker) =
     Model
         { picker
             | open = False
-            , focused = Nothing
         }
 
 
@@ -172,8 +170,7 @@ open (Model picker) =
 
 {-| -}
 type Msg
-    = ChangeFocus (Maybe Date)
-    | ChangeMonth Date
+    = ChangeMonth Date
     | Open
     | Close
     | NothingToDo
@@ -238,19 +235,6 @@ type ChangeEvent
 update : Msg -> Model -> Model
 update msg (Model picker) =
     case msg of
-        ChangeFocus focus ->
-            Model
-                { picker
-                    | focused = focus
-                    , visibleMonth =
-                        case focus of
-                            Just date ->
-                                date
-
-                            Nothing ->
-                                picker.visibleMonth
-                }
-
         ChangeMonth month ->
             Model { picker | visibleMonth = month }
 
@@ -271,14 +255,16 @@ update msg (Model picker) =
 {-| -}
 type alias Settings msg =
     { firstDayOfWeek : Weekday
+    , language : Maybe Language
+    , disabled : Date -> Bool
     , pickerAttributes : List (Attribute msg)
     , headerAttributes : List (Attribute msg)
     , tableAttributes : List (Attribute msg)
     , dayAttributes : List (Attribute msg)
     , wrongMonthDayAttributes : List (Attribute msg)
     , todayDayAttributes : List (Attribute msg)
-    , focusedDayAttributes : List (Attribute msg)
     , selectedDayAttributes : List (Attribute msg)
+    , disabledDayAttributes : List (Attribute msg)
     , previousMonthElement : Element msg
     , nextMonthElement : Element msg
     }
@@ -289,6 +275,8 @@ type alias Settings msg =
 defaultSettings : Settings msg
 defaultSettings =
     { firstDayOfWeek = Mon
+    , language = Nothing
+    , disabled = always False
     , pickerAttributes =
         [ Border.width 1
         , Border.color (Element.rgb255 186 189 182)
@@ -310,23 +298,31 @@ defaultSettings =
         ]
     , tableAttributes = [ spacing 4, centerX, centerY ]
     , dayAttributes =
-        [ Element.pointer
-        , Element.paddingXY 4 2
+        [ Element.paddingXY 4 2
         , Border.rounded 3
         ]
     , wrongMonthDayAttributes =
         [ Font.color (Element.rgb255 0x80 0x80 0x80) ]
     , todayDayAttributes =
         [ Background.color (Element.rgb255 0xFF 0xC1 0x9B) ]
-    , focusedDayAttributes =
-        [ Background.color (Element.rgb255 0x9B 0xCB 0xFF) ]
     , selectedDayAttributes =
         [ Background.color (Element.rgb255 0x00 0x7B 0xFF) ]
+    , disabledDayAttributes =
+        [ Font.color (Element.rgb255 0x80 0x80 0x80)
+        , Background.color (Element.rgb255 0xDD 0xDD 0xDD)
+        ]
     , previousMonthElement =
         Element.text "◄"
     , nextMonthElement =
         Element.text "►"
     }
+
+
+{-| Alias of [`Language`][dateLanguage] from `justinmimbs/date`.
+[dateLanguage]: <https://package.elm-lang.org/packages/justinmimbs/date/latest/Date#Language>
+-}
+type alias Language =
+    Date.Language
 
 
 type alias Config msg =
@@ -394,7 +390,6 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
             (pickerEl
                 ++ [ Events.onFocus <| onChange <| PickerChanged Open
                    , Events.onLoseFocus <| onChange <| PickerChanged Close
-                   , arrowKeyDownFocusChange config
                    ]
             )
             { onChange = onChange << TextChanged
@@ -403,127 +398,6 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
             , label = label
             }
         )
-
-
-arrowKeyDownFocusChange : Config msg -> Attribute msg
-arrowKeyDownFocusChange ({ picker } as config) =
-    let
-        focus =
-            case picker.focused of
-                Just date ->
-                    date
-
-                Nothing ->
-                    Maybe.withDefault picker.today config.selected
-
-        toFocusMsg date =
-            config.onChange <| PickerChanged <| ChangeFocus <| Just date
-
-        toKeyCodeToMsg keyCode =
-            case keyCode of
-                40 ->
-                    -- ArrowDown
-                    ( Date.add Date.Days 7 focus
-                        |> toFocusMsg
-                    , False
-                    )
-
-                38 ->
-                    -- ArrowUp
-                    ( Date.add Date.Days -7 focus
-                        |> toFocusMsg
-                    , False
-                    )
-
-                -- On Left and Right, only move focus if we have something focused or if the text is empty
-                -- Prevent Default (move cursor) when we move focus.
-                -- TODO decide on *best* arrow key behavior
-                37 ->
-                    -- ArrowLeft
-                    case picker.focused of
-                        Just date ->
-                            ( Date.add Date.Days -1 date
-                                |> toFocusMsg
-                            , True
-                            )
-
-                        Nothing ->
-                            if config.text == "" then
-                                ( Date.add Date.Days -1 focus
-                                    |> toFocusMsg
-                                , True
-                                )
-
-                            else
-                                ( NothingToDo
-                                    |> PickerChanged
-                                    |> config.onChange
-                                , False
-                                )
-
-                39 ->
-                    -- ArrowRight
-                    case picker.focused of
-                        Just date ->
-                            ( Date.add Date.Days 1 date
-                                |> toFocusMsg
-                            , True
-                            )
-
-                        Nothing ->
-                            if config.text == "" then
-                                ( Date.add Date.Days 1 focus
-                                    |> toFocusMsg
-                                , True
-                                )
-
-                            else
-                                ( NothingToDo
-                                    |> PickerChanged
-                                    |> config.onChange
-                                , False
-                                )
-
-                13 ->
-                    -- Enter
-                    case picker.focused of
-                        Just date ->
-                            ( config.onChange <| DateChanged date, False )
-
-                        Nothing ->
-                            ( NothingToDo
-                                |> PickerChanged
-                                |> config.onChange
-                            , False
-                            )
-
-                _ ->
-                    ( NothingToDo
-                        |> PickerChanged
-                        |> config.onChange
-                    , False
-                    )
-    in
-    if picker.open then
-        Element.htmlAttribute <|
-            Html.Events.preventDefaultOn "keydown"
-                (Html.Events.keyCode
-                    |> Decode.map toKeyCodeToMsg
-                )
-
-    else
-        Element.htmlAttribute <|
-            Html.Events.on "keydown"
-                (Html.Events.keyCode
-                    |> Decode.andThen
-                        (\keycode ->
-                            if keycode == 13 then
-                                Decode.succeed <| config.onChange <| PickerChanged Open
-
-                            else
-                                Decode.fail "Not enter"
-                        )
-                )
 
 
 pickerView :
@@ -553,7 +427,7 @@ pickerColumns : Config msg -> List (Element.Column (Week Date) msg)
 pickerColumns config =
     let
         weekDays =
-            calendarWeekDays config.settings.firstDayOfWeek
+            calendarWeekDays config.settings
 
         toColumn index weekday =
             { header = Element.el [ Font.bold ] (Element.text weekday)
@@ -582,7 +456,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
-                Date.format "MMMM YYYY" visibleMonth
+                formatDate settings "MMMM YYYY" visibleMonth
         , Element.el
             [ alignRight
             , Element.pointer
@@ -612,41 +486,36 @@ dayView ({ picker, settings } as config) day =
 
                   else
                     []
-                , if picker.focused == Just day then
-                    settings.focusedDayAttributes
-
-                  else
-                    []
                 , if config.selected == Just day then
                     settings.selectedDayAttributes
 
                   else
                     []
+                , if settings.disabled day then
+                    settings.disabledDayAttributes
+
+                  else
+                    [ Events.onClick <| config.onChange <| DateChanged day, Element.pointer ]
                 ]
     in
-    Element.el
-        ((Events.onClick <| config.onChange <| DateChanged day)
-            -- TODO mouse focus?
-            -- :: (Events.onMouseEnter <| config.onChange <| PickerChanged <| ChangeFocus <| Just day)
-            :: attributesForThisDay
-        )
-        (Element.text <| Date.format "dd" day)
+    Element.el attributesForThisDay
+        (Element.text <| formatDate settings "dd" day)
 
 
 
 -- STUFF WITH WEEKS AND DAYS
 
 
-calendarWeekDays : Weekday -> Week String
-calendarWeekDays firstDayOfWeek =
+calendarWeekDays : Settings msg -> Week String
+calendarWeekDays settings =
     let
         startDay =
-            Date.floor (weekdayToInterval firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
+            Date.floor (weekdayToInterval settings.firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
 
         days =
             Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
     in
-    Week.fromListWithDefault "X" (List.map (Date.format "EEEEEE") days)
+    Week.fromListWithDefault "X" (List.map (formatDate settings "EEEEEE") days)
 
 
 currentWeeks : Config msg -> List (Week Date)
@@ -699,6 +568,16 @@ weekdayToInterval weekday =
 
         Sun ->
             Date.Sunday
+
+
+formatDate : Settings msg -> String -> Date -> String
+formatDate settings string =
+    case settings.language of
+        Just language ->
+            Date.formatWithLanguage language string
+
+        Nothing ->
+            Date.format string
 
 
 
