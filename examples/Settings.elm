@@ -41,14 +41,15 @@ settings =
             DatePicker.defaultSettings
     in
     { default
-        | language = Just language
+        | firstDayOfWeek = Sun
+        , language = Just language
         , disabled =
             \day ->
                 Date.weekday day == Sun
     }
 
 
-language : DatePicker.Language
+language : Date.Language
 language =
     { monthName = monthName True
     , monthNameShort = monthName False

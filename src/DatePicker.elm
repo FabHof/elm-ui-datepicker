@@ -1,7 +1,6 @@
 module DatePicker exposing
     ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
-    , close, open
-    , Language
+    , close, open, setVisibleMonth
     )
 
 {-|
@@ -16,8 +15,7 @@ module DatePicker exposing
 
 For when you want to be more in control
 
-@docs close, open
-@docs Language
+@docs close, open, setVisibleMonth
 
 -}
 
@@ -38,8 +36,7 @@ import Time exposing (Month(..), Weekday(..))
 -- MODEL
 
 
-{-| Has all the internal model of the date picker.
--}
+{-| -}
 type Model
     = Model Picker
 
@@ -51,8 +48,8 @@ type alias Picker =
     }
 
 
-{-| Gives you the initial model of the date picker.
-Easy to us in you own init function:
+{-| The initial model of the date picker.
+Easy to us in your own init function:
 
 (You probably want to get todays date to give it to the date picker using [DatePicker.setToday](DatePicker#setToday))
 
@@ -74,7 +71,7 @@ init =
         }
 
 
-{-| Gives you the initial model of the date picker and sets the given date as today.
+{-| The initial model of the date picker and sets the given date as today.
 -}
 initWithToday : Date -> Model
 initWithToday today =
@@ -85,20 +82,7 @@ initWithToday today =
         }
 
 
-{-| Gives the date picker information about what date it is today.
-Use this in your update function:
-
-    update msg model =
-        case msg of
-            SetToday today ->
-                ( { model
-                    | pickerModel =
-                        model.pickerModel
-                            |> DatePicker.setToday today
-                  }
-                , Cmd.none
-                )
-
+{-| Sets the day that should be marked as today.
 -}
 setToday : Date -> Model -> Model
 setToday today (Model picker) =
@@ -107,7 +91,7 @@ setToday today (Model picker) =
 
 {-| Closes the date picker.
 
-Common use case: close date picker on date input:
+Example: close date picker on date input:
 
     DateChanged date ->
         ( { model
@@ -164,6 +148,13 @@ open (Model picker) =
     Model { picker | open = True }
 
 
+{-| Sets the current visible month of the date picker.
+-}
+setVisibleMonth : Date -> Model -> Model
+setVisibleMonth date (Model picker) =
+    Model { picker | visibleMonth = date }
+
+
 
 --  UPDATE
 
@@ -175,7 +166,7 @@ type Msg
     | NothingToDo
 
 
-{-| Simple example of us in a update function:
+{-| Use in your update function:
 
     update msg model =
         case msg of

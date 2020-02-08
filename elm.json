@@ -1,7 +1,7 @@
 {
     "type": "package",
     "name": "fabhof/elm-ui-datepicker",
-    "summary": "Datepicker for the awesome \"mdgriffith/elm-ui\" ",
+    "summary": "A reasonable date picker for the awesome elm-ui.",
     "license": "BSD-3-Clause",
     "version": "1.0.0",
     "exposed-modules": [
