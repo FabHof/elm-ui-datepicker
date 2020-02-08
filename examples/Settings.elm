@@ -178,15 +178,6 @@ update msg model =
                     , Cmd.none
                     )
 
-                DateCleared ->
-                    ( { model
-                        | date =
-                            Nothing
-                        , dateText = ""
-                      }
-                    , Cmd.none
-                    )
-
                 PickerChanged subMsg ->
                     ( { model
                         | pickerModel =

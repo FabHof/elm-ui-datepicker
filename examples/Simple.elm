@@ -34,12 +34,14 @@ init =
 
 view : Model -> Html Msg
 view model =
-    Element.layout [] <|
-        DatePicker.input [ Element.width Element.shrink, Element.centerX, Element.centerY ]
+    Element.layout [ Element.width Element.shrink ] <|
+        DatePicker.input [ Element.centerX, Element.centerY ]
             { onChange = ChangePicker
             , selected = model.date
             , text = model.dateText
-            , label = Input.labelAbove [] <| Element.text "Pick A Date"
+            , label =
+                Input.labelAbove [] <|
+                    Element.text "Pick A Date"
             , placeholder = Just <| Input.placeholder [] <| Element.text "jjjj-MM-dd"
             , settings = DatePicker.defaultSettings
             , model = model.pickerModel
@@ -68,15 +70,6 @@ update msg model =
                                 |> Result.toMaybe
                                 |> Maybe.Extra.orElse model.date
                         , dateText = text
-                      }
-                    , Cmd.none
-                    )
-
-                DateCleared ->
-                    ( { model
-                        | date =
-                            Nothing
-                        , dateText = ""
                       }
                     , Cmd.none
                     )

@@ -38,7 +38,7 @@ import Time exposing (Month(..), Weekday(..))
 -- MODEL
 
 
-{-| Has all the internal picker of the date picker.
+{-| Has all the internal model of the date picker.
 -}
 type Model
     = Model Picker
@@ -168,7 +168,6 @@ open (Model picker) =
 --  UPDATE
 
 
-{-| -}
 type Msg
     = ChangeMonth Date
     | Open
@@ -227,7 +226,6 @@ type Msg
 type ChangeEvent
     = DateChanged Date
     | TextChanged String
-    | DateCleared
     | PickerChanged Msg
 
 
