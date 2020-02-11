@@ -289,6 +289,7 @@ defaultSettings =
     , dayAttributes =
         [ Element.paddingXY 4 2
         , Border.rounded 3
+        , Element.mouseOver [ Background.color (Element.rgb255 0x73 0xB6 0xFF) ]
         ]
     , wrongMonthDayAttributes =
         [ Font.color (Element.rgb255 0x80 0x80 0x80) ]
