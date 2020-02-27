@@ -12,4 +12,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v1
       - name: elm-test
-        run: npx elm-test
+        run: npx elm-coverage
+      - name: Upload Coverage as Artifact
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          # Artifact name
+          name: Coverage
+          # Directory containing files to upload
+          path: .coverage/coverage.html
