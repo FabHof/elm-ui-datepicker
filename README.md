@@ -25,7 +25,7 @@ type alias Model =
     }
 ```
 
-To get a `DatePicker.model` use the `DatePicker.init` function. If you want the current day to be highlighted, you have to set it using `DatePicker.setToday`.
+To get a `DatePicker.model` use the `DatePicker.init` function. If you want the current day to be highlighted, you have to set it using `DatePicker.setToday` or use `DatePicker.initWithToday` 
 
 ```elm
 init : ( Model, Cmd Msg )
