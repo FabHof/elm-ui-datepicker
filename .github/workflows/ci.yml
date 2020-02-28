@@ -18,7 +18,8 @@ jobs:
       - name: Upload Coverage as Artifact
         uses: actions/upload-artifact@v1.0.0
         with:
-          # Artifact name
           name: Coverage
-          # Directory containing files to upload
           path: .coverage/coverage.html
+      - name: Compile examples
+        run: elm make *.elm
+        working-directory: ./examples
