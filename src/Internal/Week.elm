@@ -1,4 +1,8 @@
-module Internal.Week exposing (Index(..), Week, fromListWithDefault, getDay, indexedMap, toList)
+module Internal.Week exposing (Index(..), Week, calendarWeekDays, fromListWithDefault, getDay, indexedMap, toList, weeksInMonth)
+
+import Date exposing (Date, Language)
+import Internal.Date as Date
+import Time exposing (Month(..), Weekday(..))
 
 
 type Week a
@@ -79,6 +83,7 @@ fromListWithDefault default items =
     in
     Week week
 
+
 type Index
     = Day0
     | Day1
@@ -99,3 +104,67 @@ toList (Week week) =
     , week.day5
     , week.day6
     ]
+
+
+calendarWeekDays : Weekday -> Maybe Language -> Week String
+calendarWeekDays firstDayOfWeek maybeLanguage =
+    let
+        startDay =
+            Date.floor (weekdayToInterval firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
+
+        days =
+            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
+    in
+    fromListWithDefault "X" (List.map (Date.formatMaybeLanguage maybeLanguage "EEEEEE") days)
+
+
+weekdayToInterval : Weekday -> Date.Interval
+weekdayToInterval weekday =
+    case weekday of
+        Mon ->
+            Date.Monday
+
+        Tue ->
+            Date.Tuesday
+
+        Wed ->
+            Date.Wednesday
+
+        Thu ->
+            Date.Thursday
+
+        Fri ->
+            Date.Friday
+
+        Sat ->
+            Date.Saturday
+
+        Sun ->
+            Date.Sunday
+
+
+weeksInMonth : Date -> Weekday -> List (Week Date)
+weeksInMonth month firstDayOfWeek =
+    let
+        weekdayInterval =
+            weekdayToInterval firstDayOfWeek
+
+        firstOfMonth =
+            Date.fromCalendarDate (Date.year month) (Date.month month) 1
+
+        start =
+            firstOfMonth
+                |> Date.floor weekdayInterval
+
+        end =
+            Date.add Date.Months 1 firstOfMonth
+                |> Date.ceiling weekdayInterval
+
+        weekDays startDay =
+            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
+
+        toWeek list =
+            fromListWithDefault (Date.fromOrdinalDate 2020 1) list
+    in
+    Date.range Date.Day 7 start end
+        |> List.map (weekDays >> toWeek)

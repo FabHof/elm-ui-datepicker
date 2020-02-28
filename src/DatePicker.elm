@@ -27,6 +27,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Html.Events
+import Internal.Date as Date
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
 import Time exposing (Month(..), Weekday(..))
@@ -408,7 +409,7 @@ pickerView ({ settings } as config) =
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings } as config) =
     Element.table settings.tableAttributes
-        { data = currentWeeks config
+        { data = Week.weeksInMonth config.visibleMonth config.settings.firstDayOfWeek
         , columns = pickerColumns config
         }
 
@@ -417,7 +418,7 @@ pickerColumns : Config msg -> List (Element.Column (Week Date) msg)
 pickerColumns config =
     let
         weekDays =
-            calendarWeekDays config.settings
+            Week.calendarWeekDays config.settings.firstDayOfWeek config.settings.language
 
         toColumn index weekday =
             { header = Element.el [ Font.bold ] (Element.text weekday)
@@ -446,7 +447,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
-                formatDate settings "MMMM YYYY" visibleMonth
+                Date.formatMaybeLanguage settings.language "MMMM YYYY" visibleMonth
         , Element.el
             [ alignRight
             , Element.pointer
@@ -489,88 +490,11 @@ dayView ({ picker, settings } as config) day =
                 ]
     in
     Element.el attributesForThisDay
-        (Element.text <| formatDate settings "dd" day)
+        (Element.text <| Date.formatMaybeLanguage settings.language "dd" day)
 
 
 
 -- STUFF WITH WEEKS AND DAYS
-
-
-calendarWeekDays : Settings msg -> Week String
-calendarWeekDays settings =
-    let
-        startDay =
-            Date.floor (weekdayToInterval settings.firstDayOfWeek) (Date.fromCalendarDate 2020 Jan 1)
-
-        days =
-            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
-    in
-    Week.fromListWithDefault "X" (List.map (formatDate settings "EEEEEE") days)
-
-
-currentWeeks : Config msg -> List (Week Date)
-currentWeeks ({ settings } as config) =
-    let
-        weekdayInterval =
-            weekdayToInterval settings.firstDayOfWeek
-
-        firstOfMonth =
-            Date.fromCalendarDate (Date.year config.visibleMonth) (Date.month config.visibleMonth) 1
-
-        start =
-            firstOfMonth
-                |> Date.floor weekdayInterval
-
-        end =
-            Date.add Date.Months 1 firstOfMonth
-                |> Date.ceiling weekdayInterval
-
-        weekDays startDay =
-            Date.range Date.Day 1 startDay (Date.add Date.Days 7 startDay)
-
-        toWeek list =
-            Week.fromListWithDefault (Date.fromOrdinalDate 2020 1) list
-    in
-    Date.range Date.Day 7 start end
-        |> List.map (weekDays >> toWeek)
-
-
-weekdayToInterval : Weekday -> Date.Interval
-weekdayToInterval weekday =
-    case weekday of
-        Mon ->
-            Date.Monday
-
-        Tue ->
-            Date.Tuesday
-
-        Wed ->
-            Date.Wednesday
-
-        Thu ->
-            Date.Thursday
-
-        Fri ->
-            Date.Friday
-
-        Sat ->
-            Date.Saturday
-
-        Sun ->
-            Date.Sunday
-
-
-formatDate : Settings msg -> String -> Date -> String
-formatDate settings string =
-    case settings.language of
-        Just language ->
-            Date.formatWithLanguage language string
-
-        Nothing ->
-            Date.format string
-
-
-
 -- ADDITIONAL HELPERS
 
 
