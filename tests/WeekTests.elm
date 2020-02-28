@@ -1,4 +1,4 @@
-module Week exposing (suite)
+module WeekTests exposing (suite)
 
 import Date
 import Expect
@@ -14,7 +14,7 @@ import Time
 
 suite : Test
 suite =
-    concat
+    describe "Week"
         [ getDay
         , toList
         , indexedMap
@@ -142,16 +142,16 @@ weeksInMonth =
                 Week.weeksInMonth (Date.fromCalendarDate 2020 Time.Apr 1) Time.Mon
                     |> List.length
                     |> Expect.equal 5
-        
         , fuzz (intRange 1600 2400) "contains range of days" <|
             \fuzzYear ->
-                let 
-                    normalizedDays =  Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Apr 1) Time.Mon
-                        |> List.map Week.toList
-                        |> List.concat
-                        |> List.indexedMap (\index day -> Date.add Date.Days (index * -1) day)
-                in 
-                    normalizedDays
+                let
+                    normalizedDays =
+                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Apr 1) Time.Mon
+                            |> List.map Week.toList
+                            |> List.concat
+                            |> List.indexedMap (\index day -> Date.add Date.Days (index * -1) day)
+                in
+                normalizedDays
                     |> List.all (\day -> Just day == List.head normalizedDays)
                     |> Expect.true "sequence of days"
         ]

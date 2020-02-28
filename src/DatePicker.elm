@@ -26,9 +26,9 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Html.Attributes
 import Html.Events
 import Internal.Date as Date
+import Internal.TestHelper as TestHelper
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
 import Time exposing (Month(..), Weekday(..))
@@ -382,6 +382,7 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
             (pickerEl
                 ++ [ Events.onFocus <| onChange <| PickerChanged Open
                    , Events.onLoseFocus <| onChange <| PickerChanged Close
+                   , TestHelper.inputAttr
                    ]
             )
             { onChange = onChange << TextChanged
@@ -398,7 +399,7 @@ pickerView :
 pickerView ({ settings } as config) =
     [ Element.below <|
         Element.column
-            ((Element.htmlAttribute <| Html.Attributes.attribute "elm-test" "calendar")
+            (TestHelper.calendarAttr
                 :: preventDefaultOnMouseDown config
                 :: settings.pickerAttributes
             )
