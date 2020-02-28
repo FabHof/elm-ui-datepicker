@@ -450,7 +450,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
-                Date.formatMaybeLanguage settings.language "MMMM YYYY" visibleMonth
+                Date.formatMaybeLanguage settings.language "MMMM yyyy" visibleMonth
         , Element.el
             [ alignRight
             , Element.pointer
@@ -497,7 +497,6 @@ dayView ({ picker, settings } as config) day =
 
 
 
--- STUFF WITH WEEKS AND DAYS
 -- ADDITIONAL HELPERS
 
 

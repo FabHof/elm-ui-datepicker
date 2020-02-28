@@ -1,9 +1,11 @@
 module DatePickerTests exposing (suite)
 
+import Date
 import DatePicker
 import Element exposing (Element)
 import Element.Input as Input
 import Expect exposing (Expectation)
+import Fuzz exposing (intRange)
 import Html exposing (Html)
 import Internal.TestHelper as TestHelper
 import Json.Encode exposing (Value)
@@ -25,6 +27,8 @@ suite =
         , openCloseIsClosed
         , focusOpen
         , blurClose
+        , initSetTodayIsInitWithToday
+        , visibleMonthIsVisible
         ]
 
 
@@ -73,7 +77,8 @@ focusOpen =
                 Ok (DatePickerChanged changedEvent) ->
                     case changedEvent of
                         DatePicker.PickerChanged msg ->
-                            DatePicker.update msg model
+                            model
+                                |> DatePicker.update msg
                                 |> isOpen
 
                         _ ->
@@ -106,39 +111,74 @@ blurClose =
                             Expect.fail "focus resulted in wrong changedEvent"
 
 
+initSetTodayIsInitWithToday : Test
+initSetTodayIsInitWithToday =
+    fuzz2 (intRange 1000 3000) (intRange 1 366) "init + setToday = initWithToday" <|
+        \year day ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                setToday =
+                    DatePicker.init |> DatePicker.setToday date
+
+                withToday =
+                    DatePicker.initWithToday date
+            in
+            Expect.equal setToday withToday
+
+
+visibleMonthIsVisible : Test
+visibleMonthIsVisible =
+    fuzz2 (intRange 1000 3000) (intRange 1 366) "today is visible month" <|
+        \year day ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                model =
+                    DatePicker.initWithToday date
+                        |> DatePicker.open
+            in
+            modelToSingle model
+                |> findCalendar
+                |> Query.has [ Selector.text <| Date.format "MMMM yyyy" date ]
+
+
 
 -- EXPECTATIONS
 
 
 isClosed : DatePicker.Model -> Expectation
 isClosed model =
-    model
-        |> countCalendar 0
+    modelToSingle model
+        |> Query.hasNot [ Selector.attribute TestHelper.calendarAttrHtml ]
 
 
 isOpen : DatePicker.Model -> Expectation
 isOpen model =
-    model
-        |> countCalendar 1
-
-
-countCalendar : Int -> DatePicker.Model -> Expectation
-countCalendar count model =
-    simplePicker model
-        |> toHtml
-        |> Query.fromHtml
-        |> Query.findAll [ Selector.attribute TestHelper.calendarAttrHtml ]
-        |> (Query.count <|
-                Expect.equal count
-           )
+    modelToSingle model
+        |> Query.has [ Selector.attribute TestHelper.calendarAttrHtml ]
 
 
 
 -- HELPERS
 
 
+findCalendar : Query.Single Msg -> Query.Single Msg
+findCalendar =
+    Query.find [ Selector.attribute TestHelper.calendarAttrHtml ]
+
+
 type Msg
     = DatePickerChanged DatePicker.ChangeEvent
+
+
+modelToSingle : DatePicker.Model -> Query.Single Msg
+modelToSingle model =
+    simplePicker model
+        |> toHtml
+        |> Query.fromHtml
 
 
 toHtml : Element msg -> Html msg
