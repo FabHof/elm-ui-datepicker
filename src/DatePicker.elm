@@ -445,6 +445,7 @@ pickerHeader { visibleMonth, onChange, settings } =
                 onChange <|
                     PickerChanged <|
                         ChangeMonth (Date.add Date.Months -1 visibleMonth)
+            , TestHelper.previousMonthAttr
             ]
           <|
             settings.previousMonthElement
@@ -458,6 +459,7 @@ pickerHeader { visibleMonth, onChange, settings } =
                 onChange <|
                     PickerChanged <|
                         ChangeMonth (Date.add Date.Months 1 visibleMonth)
+            , TestHelper.nextMonthAttr
             ]
           <|
             settings.nextMonthElement
