@@ -26,6 +26,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Html.Attributes
 import Html.Events
 import Internal.Date as Date
 import Internal.Week as Week exposing (Week)
@@ -397,7 +398,8 @@ pickerView :
 pickerView ({ settings } as config) =
     [ Element.below <|
         Element.column
-            (preventDefaultOnMouseDown config
+            ((Element.htmlAttribute <| Html.Attributes.attribute "elm-test" "calendar")
+                :: preventDefaultOnMouseDown config
                 :: settings.pickerAttributes
             )
             [ pickerHeader config

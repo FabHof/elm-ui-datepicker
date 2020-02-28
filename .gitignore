@@ -1,9 +1,10 @@
-# elm-package generated files
+#elm
 elm-stuff
-# elm-repl generated files
 repl-temp-*
-
 .coverage
 .vscode
+examples/*.html
+examples/*.js
 
-examples/index.html
+#js
+node_modules

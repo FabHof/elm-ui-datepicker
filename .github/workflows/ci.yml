@@ -11,6 +11,8 @@ jobs:
         uses: justgook/setup-elm@v1
       - name: Setup Node
         uses: actions/setup-node@v1
+      - name: npm install
+        run: npm install
       - name: Install elm-test
         run: npm install -g elm-test
       - name: Run elm-coverage
@@ -20,6 +22,8 @@ jobs:
         with:
           name: Coverage
           path: .coverage/coverage.html
+      - name: Run elm-spec
+        run: npx elm-spec
       - name: Compile examples
         run: elm make *.elm
         working-directory: ./examples
