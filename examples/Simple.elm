@@ -81,6 +81,7 @@ update msg model =
                         | pickerModel =
                             model.pickerModel
                                 |> DatePicker.update subMsg
+                                |> DatePicker.open
                       }
                     , Cmd.none
                     )

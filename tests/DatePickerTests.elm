@@ -36,6 +36,7 @@ suite =
         , clickDay
         , clickDisabled
         , setTodayDoesNotOverrideVisibleMonthIfSet
+        , clickOnHeaderShowsMonthSelection
         ]
 
 
@@ -210,15 +211,13 @@ nextMonth =
                 Err err ->
                     Expect.fail err
 
-                Ok (DatePickerChanged changedEvent) ->
-                    case changedEvent of
-                        DatePicker.PickerChanged msg ->
-                            model
-                                |> DatePicker.update msg
-                                |> isVisibleMonth (date |> Date.add Date.Months 1)
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    model
+                        |> DatePicker.update msg
+                        |> isVisibleMonth (date |> Date.add Date.Months 1)
 
-                        _ ->
-                            Expect.fail "focus resulted in wrong changedEvent"
+                _ ->
+                    Expect.fail "focus resulted in wrong changedEvent"
 
 
 previousMonth : Test
@@ -240,15 +239,13 @@ previousMonth =
                 Err err ->
                     Expect.fail err
 
-                Ok (DatePickerChanged changedEvent) ->
-                    case changedEvent of
-                        DatePicker.PickerChanged msg ->
-                            model
-                                |> DatePicker.update msg
-                                |> isVisibleMonth (date |> Date.add Date.Months -1)
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    model
+                        |> DatePicker.update msg
+                        |> isVisibleMonth (date |> Date.add Date.Months -1)
 
-                        _ ->
-                            Expect.fail "focus resulted in wrong changedEvent"
+                _ ->
+                    Expect.fail "focus resulted in wrong changedEvent"
 
 
 clickDay : Test
@@ -332,14 +329,6 @@ clickDisabled =
                 |> Expect.err
 
 
-
--- |> Event.expect
---     (DatePickerChanged <|
---         DatePicker.DateChanged <|
---             Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
---     )
-
-
 intTo2DigitString : Int -> String
 intTo2DigitString num =
     if num < 10 then
@@ -370,8 +359,57 @@ selectedDay =
                 |> Query.has [ Selector.attribute TestHelper.selectedAttrHtml ]
 
 
+clickOnHeaderShowsMonthSelection : Test
+clickOnHeaderShowsMonthSelection =
+    test "clicking header shows month selection" <|
+        \_ ->
+            let
+                model =
+                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                        |> DatePicker.open
+
+                clickResult =
+                    modelToSingle model
+                        |> findCalendar
+                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text "January 2020" ] ]
+                        |> (Query.keep <| Selector.containing [ Selector.text "January 2020" ])
+                        |> (Query.keep <| Selector.tag "div")
+                        |> Query.first
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+            in
+            case clickResult of
+                Err err ->
+                    Expect.fail err
+
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    model
+                        |> DatePicker.update msg
+                        |> isInMonthView "2020"
+
+                _ ->
+                    Expect.fail "focus resulted in wrong changedEvent"
+
+
 
 -- EXPECTATIONS
+
+
+isInMonthView : String -> DatePicker.Model -> Expectation
+isInMonthView year model =
+    modelToSingle model
+        |> Expect.all
+            (Query.has [ Selector.text year ]
+                :: (List.range 1 12
+                        |> List.map (\m -> Date.numberToMonth m)
+                        |> List.map (\m -> Date.fromCalendarDate 2020 m 1)
+                        |> List.map (\d -> Date.format "MMM" d)
+                        |> List.map (\m -> Query.has [ Selector.text m ])
+                   )
+             -- [ Query.has [ Selector.text "Jan" ]
+             --    , Query.has [ Selector.text "Feb" ]
+             --    ]
+            )
 
 
 isVisibleMonth : Date -> DatePicker.Model -> Expectation
