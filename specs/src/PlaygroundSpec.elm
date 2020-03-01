@@ -14,11 +14,11 @@ clickSpec =
     describe "simple date picker"
         [ scenario "input clicked"
             (given Wrapper.simpleApp
-                |> when "the the input field is clicked"
+                |> when "the input field is clicked"
                     [ Markup.target << by [ tag "input" ]
                     , Event.click
                     ]
-                |> it "renders the count"
+                |> it "is visible"
                     (Markup.observeElement
                         |> Markup.query
                         << by [ attribute ( "elm-test", "calendar" ) ]
