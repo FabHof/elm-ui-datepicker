@@ -26,9 +26,9 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Html.Attributes
 import Html.Events
 import Internal.Date as Date
+import Internal.TestHelper as TestHelper
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
 import Time exposing (Month(..), Weekday(..))
@@ -382,6 +382,7 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
             (pickerEl
                 ++ [ Events.onFocus <| onChange <| PickerChanged Open
                    , Events.onLoseFocus <| onChange <| PickerChanged Close
+                   , TestHelper.inputAttr
                    ]
             )
             { onChange = onChange << TextChanged
@@ -398,7 +399,7 @@ pickerView :
 pickerView ({ settings } as config) =
     [ Element.below <|
         Element.column
-            ((Element.htmlAttribute <| Html.Attributes.attribute "elm-test" "calendar")
+            (TestHelper.calendarAttr
                 :: preventDefaultOnMouseDown config
                 :: settings.pickerAttributes
             )
@@ -410,7 +411,7 @@ pickerView ({ settings } as config) =
 
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings } as config) =
-    Element.table settings.tableAttributes
+    Element.table (TestHelper.tableAttr :: settings.tableAttributes)
         { data = Week.weeksInMonth config.visibleMonth config.settings.firstDayOfWeek
         , columns = pickerColumns config
         }
@@ -444,12 +445,13 @@ pickerHeader { visibleMonth, onChange, settings } =
                 onChange <|
                     PickerChanged <|
                         ChangeMonth (Date.add Date.Months -1 visibleMonth)
+            , TestHelper.previousMonthAttr
             ]
           <|
             settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
-                Date.formatMaybeLanguage settings.language "MMMM YYYY" visibleMonth
+                Date.formatMaybeLanguage settings.language "MMMM yyyy" visibleMonth
         , Element.el
             [ alignRight
             , Element.pointer
@@ -457,6 +459,7 @@ pickerHeader { visibleMonth, onChange, settings } =
                 onChange <|
                     PickerChanged <|
                         ChangeMonth (Date.add Date.Months 1 visibleMonth)
+            , TestHelper.nextMonthAttr
             ]
           <|
             settings.nextMonthElement
@@ -473,14 +476,16 @@ dayView ({ picker, settings } as config) day =
                     settings.wrongMonthDayAttributes
 
                   else
-                    []
+                    [ TestHelper.dayInMonthAttr ]
                 , if picker.today == day then
-                    settings.todayDayAttributes
+                    TestHelper.todayAttr
+                        :: settings.todayDayAttributes
 
                   else
                     []
                 , if config.selected == Just day then
-                    settings.selectedDayAttributes
+                    TestHelper.selectedAttr
+                        :: settings.selectedDayAttributes
 
                   else
                     []
@@ -496,7 +501,6 @@ dayView ({ picker, settings } as config) day =
 
 
 
--- STUFF WITH WEEKS AND DAYS
 -- ADDITIONAL HELPERS
 
 

@@ -1,4 +1,4 @@
-module Week exposing (suite)
+module WeekTests exposing (suite)
 
 import Date
 import Expect
@@ -14,7 +14,7 @@ import Time
 
 suite : Test
 suite =
-    concat
+    describe "Week"
         [ getDay
         , toList
         , indexedMap
@@ -114,17 +114,25 @@ calendarWeekDays =
         ]
 
 
+millisecondsInADay : number
+millisecondsInADay =
+    1000*60*60*24
+
+
 weeksInMonth : Test
 weeksInMonth =
     describe "Week.weeksInMonth"
-        [ fuzz2 (intRange 1 31) (intRange 1900 2100) "same result for every day in the month" <|
-            \fuzzDay fuzzYear ->
+        [ fuzz3 (intRange 1 31) (intRange 1000 3000) (intRange 0 6) "same result for every day in the month" <|
+            \fuzzDay fuzzYear fuzzWeekDay->
                 let
+                    weekday =
+                        Time.toWeekday Time.utc (Time.millisToPosix <| fuzzWeekDay * millisecondsInADay)
+
                     weeks1 =
-                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Mar 1) Time.Mon
+                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Mar 1) weekday
 
                     weeksFuzzed =
-                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Mar fuzzDay) Time.Mon
+                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Mar fuzzDay) weekday
                 in
                 Expect.equalLists weeks1 weeksFuzzed
         , test "expected length for long month" <|
@@ -142,16 +150,16 @@ weeksInMonth =
                 Week.weeksInMonth (Date.fromCalendarDate 2020 Time.Apr 1) Time.Mon
                     |> List.length
                     |> Expect.equal 5
-        
         , fuzz (intRange 1600 2400) "contains range of days" <|
             \fuzzYear ->
-                let 
-                    normalizedDays =  Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Apr 1) Time.Mon
-                        |> List.map Week.toList
-                        |> List.concat
-                        |> List.indexedMap (\index day -> Date.add Date.Days (index * -1) day)
-                in 
-                    normalizedDays
+                let
+                    normalizedDays =
+                        Week.weeksInMonth (Date.fromCalendarDate fuzzYear Time.Apr 1) Time.Mon
+                            |> List.map Week.toList
+                            |> List.concat
+                            |> List.indexedMap (\index day -> Date.add Date.Days (index * -1) day)
+                in
+                normalizedDays
                     |> List.all (\day -> Just day == List.head normalizedDays)
                     |> Expect.true "sequence of days"
         ]
