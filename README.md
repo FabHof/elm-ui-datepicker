@@ -2,7 +2,7 @@
 
 A reasonable date picker for the awesome [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/).
 
-At it's core, this date picker is just a wrapper around [Element.Input.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element-Input#text).
+At it's core, this date picker is just a wrapper around [Element.Input.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element-Input#text). It uses [justinmimbs/date](https://package.elm-lang.org/packages/justinmimbs/date/latest/) to represent dates.
 
 [See it in action here.](https://fabhof.github.io/elm-ui-datepicker/)
 
