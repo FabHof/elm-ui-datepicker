@@ -34,6 +34,7 @@ suite =
         , previousMonth
         , selectedDay
         , clickDay
+        , clickDisabled
         ]
 
 
@@ -262,6 +263,57 @@ clickDay =
                         DatePicker.DateChanged <|
                             Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
                     )
+
+
+clickDisabled : Test
+clickDisabled =
+    fuzz3 (intRange 1000 3000) (intRange 1 366) (intRange 1 31) "Clicking a disabled date does not fire an event" <|
+        \year day select ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                lastDayInMonth =
+                    Date.fromCalendarDate (Date.year date) (Date.month date) 31
+
+                model =
+                    DatePicker.initWithToday date
+                        |> DatePicker.open
+
+                dayToSelect =
+                    min select (Date.day lastDayInMonth)
+
+                defaultSettings =
+                    DatePicker.defaultSettings
+
+                settings =
+                    { defaultSettings | disabled = always True }
+
+                simpleConfig =
+                    simplePickerConfig model
+
+                config =
+                    { simpleConfig | settings = settings }
+            in
+            DatePicker.input [] config
+                |> toHtml
+                |> Query.fromHtml
+                |> findTable
+                |> Query.find
+                    [ Selector.attribute TestHelper.dayInMonthAttrHtml
+                    , Selector.containing
+                        [ Selector.text <|
+                            intTo2DigitString dayToSelect
+                        ]
+                    ]
+                |> Event.simulate Event.click
+                |> Event.toResult
+                |> Expect.err
+                -- |> Event.expect
+                --     (DatePickerChanged <|
+                --         DatePicker.DateChanged <|
+                --             Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
+                --     )
 
 
 intTo2DigitString : Int -> String
