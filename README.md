@@ -6,11 +6,6 @@ At it's core, this date picker is just a wrapper around [Element.Input.text](htt
 
 [See it in action here.](https://fabhof.github.io/elm-ui-datepicker/)
 
-## Install
-
-If you would like to use it, let me know and I will release it 🚀.
-Take a look a the [doc preview](https://elm-doc-preview.netlify.com/?repo=FabHof/elm-ui-datepicker) to know if it is useful for you.
-
 ## Usage
 
 It makes the most sense if you look at the [simple example](https://github.com/FabHof/elm-ui-datepicker/blob/master/examples/Simple.elm) and the [other examples](https://github.com/FabHof/elm-ui-datepicker/tree/master/examples).
