@@ -411,7 +411,7 @@ pickerView ({ settings } as config) =
 
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings } as config) =
-    Element.table settings.tableAttributes
+    Element.table (TestHelper.tableAttr :: settings.tableAttributes)
         { data = Week.weeksInMonth config.visibleMonth config.settings.firstDayOfWeek
         , columns = pickerColumns config
         }
@@ -476,14 +476,16 @@ dayView ({ picker, settings } as config) day =
                     settings.wrongMonthDayAttributes
 
                   else
-                    []
+                    [ TestHelper.dayInMonthAttr ]
                 , if picker.today == day then
-                    settings.todayDayAttributes
+                    TestHelper.todayAttr
+                        :: settings.todayDayAttributes
 
                   else
                     []
                 , if config.selected == Just day then
-                    settings.selectedDayAttributes
+                    TestHelper.selectedAttr
+                        :: settings.selectedDayAttributes
 
                   else
                     []

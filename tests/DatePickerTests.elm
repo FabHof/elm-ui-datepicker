@@ -24,7 +24,7 @@ suite =
     describe "DatePicker"
         [ startsClosed
         , open
-        , openCloseIsClosed
+        , close
         , focusOpen
         , blurClose
         , initSetTodayIsInitWithToday
@@ -32,6 +32,8 @@ suite =
         , setVisibleIsVisible
         , nextMonth
         , previousMonth
+        , selectedDay
+        , clickDay
         ]
 
 
@@ -52,8 +54,8 @@ open =
                 |> isOpen
 
 
-openCloseIsClosed : Test
-openCloseIsClosed =
+close : Test
+close =
     test "DatePicker.close closes again" <|
         \_ ->
             DatePicker.init
@@ -144,7 +146,10 @@ todayIsVisibleOnInit =
                         |> DatePicker.open
             in
             model
-                |> isVisibleMonth date
+                |> Expect.all
+                    [ isVisibleMonth date
+                    , todayIsThere date
+                    ]
 
 
 setVisibleIsVisible : Test
@@ -224,6 +229,71 @@ previousMonth =
                             Expect.fail "focus resulted in wrong changedEvent"
 
 
+clickDay : Test
+clickDay =
+    fuzz3 (intRange 1000 3000) (intRange 1 366) (intRange 1 31) "Clicking a date has correct event" <|
+        \year day select ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                lastDayInMonth =
+                    Date.fromCalendarDate (Date.year date) (Date.month date) 31
+
+                model =
+                    DatePicker.initWithToday date
+                        |> DatePicker.open
+
+                dayToSelect =
+                    min select (Date.day lastDayInMonth)
+            in
+            modelToSingle model
+                |> findTable
+                |> Query.find
+                    [ Selector.attribute TestHelper.dayInMonthAttrHtml
+                    , Selector.containing
+                        [ Selector.text <|
+                            intTo2DigitString dayToSelect
+                        ]
+                    ]
+                |> Event.simulate Event.click
+                |> Event.expect
+                    (DatePickerChanged <|
+                        DatePicker.DateChanged <|
+                            Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
+                    )
+
+
+intTo2DigitString : Int -> String
+intTo2DigitString num =
+    if num < 10 then
+        "0" ++ String.fromInt num
+
+    else
+        String.fromInt num
+
+
+selectedDay : Test
+selectedDay =
+    test "selected day is there" <|
+        \_ ->
+            let
+                model =
+                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                        |> DatePicker.open
+
+                simpleConfig =
+                    simplePickerConfig model
+
+                selectedConfig =
+                    { simpleConfig | selected = Just <| Date.fromOrdinalDate 2020 1 }
+            in
+            DatePicker.input [] selectedConfig
+                |> toHtml
+                |> Query.fromHtml
+                |> Query.has [ Selector.attribute TestHelper.selectedAttrHtml ]
+
+
 
 -- EXPECTATIONS
 
@@ -233,6 +303,13 @@ isVisibleMonth date model =
     modelToSingle model
         |> findCalendar
         |> Query.has [ Selector.text <| Date.format "MMMM yyyy" date ]
+
+
+todayIsThere : Date -> DatePicker.Model -> Expectation
+todayIsThere today model =
+    modelToSingle model
+        |> Query.find [ Selector.attribute TestHelper.todayAttrHtml ]
+        |> Query.has [ Selector.text (Date.day today |> String.fromInt) ]
 
 
 isClosed : DatePicker.Model -> Expectation
@@ -251,9 +328,18 @@ isOpen model =
 -- HELPERS
 
 
+type Msg
+    = DatePickerChanged DatePicker.ChangeEvent
+
+
 findCalendar : Query.Single Msg -> Query.Single Msg
 findCalendar =
     Query.find [ Selector.attribute TestHelper.calendarAttrHtml ]
+
+
+findTable : Query.Single Msg -> Query.Single Msg
+findTable =
+    Query.find [ Selector.attribute TestHelper.tableAttrHtml ]
 
 
 findNextMonthButton : Query.Single Msg -> Query.Single Msg
@@ -264,10 +350,6 @@ findNextMonthButton =
 findPreviousMonthButton : Query.Single Msg -> Query.Single Msg
 findPreviousMonthButton =
     Query.find [ Selector.attribute TestHelper.previousMonthAttrHtml ]
-
-
-type Msg
-    = DatePickerChanged DatePicker.ChangeEvent
 
 
 modelToSingle : DatePicker.Model -> Query.Single Msg
@@ -284,15 +366,18 @@ toHtml =
 
 simplePicker : DatePicker.Model -> Element Msg
 simplePicker model =
-    DatePicker.input []
-        { onChange = DatePickerChanged
-        , selected = Nothing
-        , text = ""
-        , label = Input.labelAbove [] (Element.text "date picker")
-        , placeholder = Nothing
-        , model = model
-        , settings = DatePicker.defaultSettings
-        }
+    DatePicker.input [] (simplePickerConfig model)
+
+
+simplePickerConfig model =
+    { onChange = DatePickerChanged
+    , selected = Nothing
+    , text = ""
+    , label = Input.labelAbove [] (Element.text "date picker")
+    , placeholder = Nothing
+    , model = model
+    , settings = DatePicker.defaultSettings
+    }
 
 
 eventOnInputField : DatePicker.Model -> ( String, Value ) -> Result String Msg
