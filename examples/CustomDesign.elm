@@ -101,7 +101,7 @@ update msg model =
 
 {-| If you want to have the date picker look crazy - you can do it!
 -}
-settings : DatePicker.Settings msg
+settings : DatePicker.Settings
 settings =
     let
         default =

@@ -244,26 +244,26 @@ update msg (Model picker) =
 
 
 {-| -}
-type alias Settings msg =
+type alias Settings =
     { firstDayOfWeek : Weekday
     , language : Maybe Language
     , disabled : Date -> Bool
-    , pickerAttributes : List (Attribute msg)
-    , headerAttributes : List (Attribute msg)
-    , tableAttributes : List (Attribute msg)
-    , dayAttributes : List (Attribute msg)
-    , wrongMonthDayAttributes : List (Attribute msg)
-    , todayDayAttributes : List (Attribute msg)
-    , selectedDayAttributes : List (Attribute msg)
-    , disabledDayAttributes : List (Attribute msg)
-    , previousMonthElement : Element msg
-    , nextMonthElement : Element msg
+    , pickerAttributes : List (Attribute Never)
+    , headerAttributes : List (Attribute Never)
+    , tableAttributes : List (Attribute Never)
+    , dayAttributes : List (Attribute Never)
+    , wrongMonthDayAttributes : List (Attribute Never)
+    , todayDayAttributes : List (Attribute Never)
+    , selectedDayAttributes : List (Attribute Never)
+    , disabledDayAttributes : List (Attribute Never)
+    , previousMonthElement : Element Never
+    , nextMonthElement : Element Never
     }
 
 
 {-| Reasonable default settings.
 -}
-defaultSettings : Settings msg
+defaultSettings : Settings
 defaultSettings =
     { firstDayOfWeek = Mon
     , language = Nothing
@@ -318,7 +318,7 @@ type alias Language =
 
 
 type alias Config msg =
-    { settings : Settings msg
+    { settings : Settings
     , label : Input.Label msg
     , placeholder : Maybe (Input.Placeholder msg)
     , picker : Picker
@@ -340,7 +340,7 @@ input :
         , label : Input.Label msg
         , placeholder : Maybe (Input.Placeholder msg)
         , model : Model
-        , settings : Settings msg
+        , settings : Settings
         }
     -> Element msg
 input attributes ({ settings, model, label, placeholder, selected, onChange } as inputConfig) =
@@ -401,7 +401,7 @@ pickerView ({ settings } as config) =
         Element.column
             (TestHelper.calendarAttr
                 :: preventDefaultOnMouseDown config
-                :: settings.pickerAttributes
+                :: extAttrs settings.pickerAttributes
             )
             [ pickerHeader config
             , pickerTable config
@@ -411,7 +411,7 @@ pickerView ({ settings } as config) =
 
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings } as config) =
-    Element.table (TestHelper.tableAttr :: settings.tableAttributes)
+    Element.table (TestHelper.tableAttr :: extAttrs settings.tableAttributes)
         { data = Week.weeksInMonth config.visibleMonth config.settings.firstDayOfWeek
         , columns = pickerColumns config
         }
@@ -437,7 +437,7 @@ pickerColumns config =
 
 pickerHeader : Config msg -> Element msg
 pickerHeader { visibleMonth, onChange, settings } =
-    Element.row settings.headerAttributes
+    Element.row (extAttrs settings.headerAttributes)
         [ Element.el
             [ alignLeft
             , Element.pointer
@@ -448,7 +448,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             , TestHelper.previousMonthAttr
             ]
           <|
-            settings.previousMonthElement
+            extEle settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
                 Date.formatMaybeLanguage settings.language "MMMM yyyy" visibleMonth
@@ -462,7 +462,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             , TestHelper.nextMonthAttr
             ]
           <|
-            settings.nextMonthElement
+            extEle settings.nextMonthElement
         ]
 
 
@@ -471,26 +471,26 @@ dayView ({ picker, settings } as config) day =
     let
         attributesForThisDay =
             List.concat
-                [ settings.dayAttributes
+                [ extAttrs settings.dayAttributes
                 , if Date.month config.visibleMonth /= Date.month day then
-                    settings.wrongMonthDayAttributes
+                    extAttrs settings.wrongMonthDayAttributes
 
                   else
                     [ TestHelper.dayInMonthAttr ]
                 , if picker.today == day then
                     TestHelper.todayAttr
-                        :: settings.todayDayAttributes
+                        :: extAttrs settings.todayDayAttributes
 
                   else
                     []
                 , if config.selected == Just day then
                     TestHelper.selectedAttr
-                        :: settings.selectedDayAttributes
+                        :: extAttrs settings.selectedDayAttributes
 
                   else
                     []
                 , if settings.disabled day then
-                    settings.disabledDayAttributes
+                    extAttrs settings.disabledDayAttributes
 
                   else
                     [ Events.onClick <| config.onChange <| DateChanged day, Element.pointer ]
@@ -502,6 +502,16 @@ dayView ({ picker, settings } as config) day =
 
 
 -- ADDITIONAL HELPERS
+
+
+extAttrs : List (Attribute Never) -> List (Attribute a)
+extAttrs =
+    List.map (Element.mapAttribute never)
+
+
+extEle : Element Never -> Element a
+extEle =
+    Element.map never
 
 
 {-| This is used, to prevent that the picker is closed unexpectedly.
