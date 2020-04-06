@@ -106,7 +106,7 @@ Example: close date picker on date input:
         , Cmd.none
         )
 
-**Note**: the date picker will reopen on _enter_ and _click_.
+**Note**: the date picker will reopen on _focus_ and _click_.
 To prevent this, close the date picker on every update:
 
     PickerChanged subMsg ->
@@ -329,10 +329,11 @@ type alias Config msg =
     }
 
 
-{-| This view function is a wrapper around `Input.text`, with a more complex `onChange`, a `selected` date, the internal `model` and some `settings`.
+{-| Use it like you would `Input.text`, the attributes, `text`, `placeholder` and `label` will behave 
+exactly like for `Input.text`. It has however a more complex `onChange`, a `selected` date, the internal `model` and some `settings`.
 
-    **Note**: Events.onClick, Events.onFocus and Events.onLoseFocus are used internally by the date picker.
-    This means, that **your own Events.onClick, Events.onFocus and Events.onLoseFocus have** (sometimes) **no effect**.
+**Note**: `Events.onClick`, `Events.onFocus` and `Events.onLoseFocus` are used internally by the date picker.
+This means, that **your own `Events.onClick`, `Events.onFocus` and `Events.onLoseFocus` attributes have no effect and will not fire**.
 
 -}
 input :
