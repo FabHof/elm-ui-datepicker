@@ -329,7 +329,11 @@ type alias Config msg =
     }
 
 
-{-| This view function is a wrapper around `Input.text`, with a more complex `onChange`, a `selected` date, the internal `model` and some `settings`
+{-| This view function is a wrapper around `Input.text`, with a more complex `onChange`, a `selected` date, the internal `model` and some `settings`.
+
+    **Note**: Events.onClick, Events.onFocus and Events.onLoseFocus are used internally by the date picker.
+    This means, that **your own Events.onClick, Events.onFocus and Events.onLoseFocus have** (sometimes) **no effect**.
+
 -}
 input :
     List (Attribute msg)
@@ -371,26 +375,22 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
                 attributes
 
             else
-                (PickerChanged Open
-                    |> onChange
-                    |> Events.onClick
-                )
-                    :: attributes
+                attributes
+                    ++ [ Events.onClick <| onChange <| PickerChanged Open ]
     in
-    Element.el inputAttributes
-        (Input.text
-            (pickerEl
-                ++ [ Events.onFocus <| onChange <| PickerChanged Open
-                   , Events.onLoseFocus <| onChange <| PickerChanged Close
-                   , TestHelper.inputAttr
-                   ]
-            )
-            { onChange = onChange << TextChanged
-            , text = config.text
-            , placeholder = placeholder
-            , label = label
-            }
+    Input.text
+        (inputAttributes
+            ++ pickerEl
+            ++ [ Events.onFocus <| onChange <| PickerChanged Open
+               , Events.onLoseFocus <| onChange <| PickerChanged Close
+               , TestHelper.inputAttr
+               ]
         )
+        { onChange = onChange << TextChanged
+        , text = config.text
+        , placeholder = placeholder
+        , label = label
+        }
 
 
 pickerView :
