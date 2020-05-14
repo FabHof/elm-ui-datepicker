@@ -106,7 +106,7 @@ Example: close date picker on date input:
         , Cmd.none
         )
 
-**Note**: the date picker will reopen on _enter_ and _click_.
+**Note**: the date picker will reopen on _focus_ and _click_.
 To prevent this, close the date picker on every update:
 
     PickerChanged subMsg ->
@@ -244,26 +244,26 @@ update msg (Model picker) =
 
 
 {-| -}
-type alias Settings msg =
+type alias Settings =
     { firstDayOfWeek : Weekday
     , language : Maybe Language
     , disabled : Date -> Bool
-    , pickerAttributes : List (Attribute msg)
-    , headerAttributes : List (Attribute msg)
-    , tableAttributes : List (Attribute msg)
-    , dayAttributes : List (Attribute msg)
-    , wrongMonthDayAttributes : List (Attribute msg)
-    , todayDayAttributes : List (Attribute msg)
-    , selectedDayAttributes : List (Attribute msg)
-    , disabledDayAttributes : List (Attribute msg)
-    , previousMonthElement : Element msg
-    , nextMonthElement : Element msg
+    , pickerAttributes : List (Attribute Never)
+    , headerAttributes : List (Attribute Never)
+    , tableAttributes : List (Attribute Never)
+    , dayAttributes : List (Attribute Never)
+    , wrongMonthDayAttributes : List (Attribute Never)
+    , todayDayAttributes : List (Attribute Never)
+    , selectedDayAttributes : List (Attribute Never)
+    , disabledDayAttributes : List (Attribute Never)
+    , previousMonthElement : Element Never
+    , nextMonthElement : Element Never
     }
 
 
 {-| Reasonable default settings.
 -}
-defaultSettings : Settings msg
+defaultSettings : Settings
 defaultSettings =
     { firstDayOfWeek = Mon
     , language = Nothing
@@ -318,7 +318,7 @@ type alias Language =
 
 
 type alias Config msg =
-    { settings : Settings msg
+    { settings : Settings
     , label : Input.Label msg
     , placeholder : Maybe (Input.Placeholder msg)
     , picker : Picker
@@ -329,7 +329,12 @@ type alias Config msg =
     }
 
 
-{-| This view function is a wrapper around `Input.text`, with a more complex `onChange`, a `selected` date, the internal `model` and some `settings`
+{-| Use it like you would `Input.text`, the attributes, `text`, `placeholder` and `label` will behave 
+exactly like for `Input.text`. It has however a more complex `onChange`, a `selected` date, the internal `model` and some `settings`.
+
+**Note**: `Events.onClick`, `Events.onFocus` and `Events.onLoseFocus` are used internally by the date picker.
+This means, that **your own `Events.onClick`, `Events.onFocus` and `Events.onLoseFocus` attributes have no effect and will not fire**.
+
 -}
 input :
     List (Attribute msg)
@@ -340,7 +345,7 @@ input :
         , label : Input.Label msg
         , placeholder : Maybe (Input.Placeholder msg)
         , model : Model
-        , settings : Settings msg
+        , settings : Settings
         }
     -> Element msg
 input attributes ({ settings, model, label, placeholder, selected, onChange } as inputConfig) =
@@ -371,26 +376,22 @@ input attributes ({ settings, model, label, placeholder, selected, onChange } as
                 attributes
 
             else
-                (PickerChanged Open
-                    |> onChange
-                    |> Events.onClick
-                )
-                    :: attributes
+                attributes
+                    ++ [ Events.onClick <| onChange <| PickerChanged Open ]
     in
-    Element.el inputAttributes
-        (Input.text
-            (pickerEl
-                ++ [ Events.onFocus <| onChange <| PickerChanged Open
-                   , Events.onLoseFocus <| onChange <| PickerChanged Close
-                   , TestHelper.inputAttr
-                   ]
-            )
-            { onChange = onChange << TextChanged
-            , text = config.text
-            , placeholder = placeholder
-            , label = label
-            }
+    Input.text
+        (inputAttributes
+            ++ pickerEl
+            ++ [ Events.onFocus <| onChange <| PickerChanged Open
+               , Events.onLoseFocus <| onChange <| PickerChanged Close
+               , TestHelper.inputAttr
+               ]
         )
+        { onChange = onChange << TextChanged
+        , text = config.text
+        , placeholder = placeholder
+        , label = label
+        }
 
 
 pickerView :
@@ -401,7 +402,7 @@ pickerView ({ settings } as config) =
         Element.column
             (TestHelper.calendarAttr
                 :: preventDefaultOnMouseDown config
-                :: settings.pickerAttributes
+                :: extAttrs settings.pickerAttributes
             )
             [ pickerHeader config
             , pickerTable config
@@ -411,7 +412,7 @@ pickerView ({ settings } as config) =
 
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings } as config) =
-    Element.table (TestHelper.tableAttr :: settings.tableAttributes)
+    Element.table (TestHelper.tableAttr :: extAttrs settings.tableAttributes)
         { data = Week.weeksInMonth config.visibleMonth config.settings.firstDayOfWeek
         , columns = pickerColumns config
         }
@@ -437,7 +438,7 @@ pickerColumns config =
 
 pickerHeader : Config msg -> Element msg
 pickerHeader { visibleMonth, onChange, settings } =
-    Element.row settings.headerAttributes
+    Element.row (extAttrs settings.headerAttributes)
         [ Element.el
             [ alignLeft
             , Element.pointer
@@ -448,7 +449,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             , TestHelper.previousMonthAttr
             ]
           <|
-            settings.previousMonthElement
+            extEle settings.previousMonthElement
         , Element.el [ centerX ] <|
             Element.text <|
                 Date.formatMaybeLanguage settings.language "MMMM yyyy" visibleMonth
@@ -462,7 +463,7 @@ pickerHeader { visibleMonth, onChange, settings } =
             , TestHelper.nextMonthAttr
             ]
           <|
-            settings.nextMonthElement
+            extEle settings.nextMonthElement
         ]
 
 
@@ -471,26 +472,26 @@ dayView ({ picker, settings } as config) day =
     let
         attributesForThisDay =
             List.concat
-                [ settings.dayAttributes
+                [ extAttrs settings.dayAttributes
                 , if Date.month config.visibleMonth /= Date.month day then
-                    settings.wrongMonthDayAttributes
+                    extAttrs settings.wrongMonthDayAttributes
 
                   else
                     [ TestHelper.dayInMonthAttr ]
                 , if picker.today == day then
                     TestHelper.todayAttr
-                        :: settings.todayDayAttributes
+                        :: extAttrs settings.todayDayAttributes
 
                   else
                     []
                 , if config.selected == Just day then
                     TestHelper.selectedAttr
-                        :: settings.selectedDayAttributes
+                        :: extAttrs settings.selectedDayAttributes
 
                   else
                     []
                 , if settings.disabled day then
-                    settings.disabledDayAttributes
+                    extAttrs settings.disabledDayAttributes
 
                   else
                     [ Events.onClick <| config.onChange <| DateChanged day, Element.pointer ]
@@ -502,6 +503,16 @@ dayView ({ picker, settings } as config) day =
 
 
 -- ADDITIONAL HELPERS
+
+
+extAttrs : List (Attribute Never) -> List (Attribute a)
+extAttrs =
+    List.map (Element.mapAttribute never)
+
+
+extEle : Element Never -> Element a
+extEle =
+    Element.map never
 
 
 {-| This is used, to prevent that the picker is closed unexpectedly.

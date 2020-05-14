@@ -1,8 +1,10 @@
-# Date Picker
+# Date Picker [![release](https://github-basic-badges.herokuapp.com/release/FabHof/elm-ui-datepicker.svg)](https://package.elm-lang.org/packages/fabhof/elm-ui-datepicker/latest/) [![codecov](https://codecov.io/gh/FabHof/elm-ui-datepicker/branch/master/graph/badge.svg)](https://codecov.io/gh/FabHof/elm-ui-datepicker) ![CI](https://github.com/FabHof/elm-ui-datepicker/workflows/CI/badge.svg?branch=master)
 
 A reasonable date picker for the awesome [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/).
 
-At it's core, this date picker is just a wrapper around [Element.Input.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element-Input#text). It uses [justinmimbs/date](https://package.elm-lang.org/packages/justinmimbs/date/latest/) to represent dates.
+At it's core, this date picker is just a [Element.Input.text](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/Element-Input#text) with a few more features.
+
+It also depends on [justinmimbs/date](https://package.elm-lang.org/packages/justinmimbs/date/latest/) to represent dates without time and timezones.
 
 [See it in action here.](https://fabhof.github.io/elm-ui-datepicker/)
 

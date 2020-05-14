@@ -34,7 +34,7 @@ init =
     )
 
 
-settings : DatePicker.Settings msg
+settings : DatePicker.Settings
 settings =
     let
         default =

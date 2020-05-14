@@ -6,6 +6,7 @@ import DatePicker exposing (ChangeEvent(..))
 import Element exposing (padding)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
@@ -23,6 +24,15 @@ type alias Model =
 type Msg
     = ChangePicker ChangeEvent
     | SetToday Date
+    | OnFocus
+    | OnLoseFocus
+    | OnClick
+    | OnDoubleClick
+    | OnMouseDown
+    | OnMouseUp
+    | OnMouseEnter
+    | OnMouseLeave
+    | OnMouseMove
 
 
 init : ( Model, Cmd Msg )
@@ -31,7 +41,6 @@ init =
       , dateText = ""
       , pickerModel =
             DatePicker.init
-                |> DatePicker.open
       }
     , Task.perform SetToday Date.today
     )
@@ -40,7 +49,25 @@ init =
 view : Model -> Html Msg
 view model =
     Element.layout [] <|
-        DatePicker.input [ Element.width Element.shrink, Element.centerX, Element.centerY ]
+        DatePicker.input
+            [ Element.width (Element.px 180)
+            , Element.centerX
+            , Element.centerY
+            , Element.padding 42
+            , Background.color (Element.rgb255 158 60 99)
+            , Border.color (Element.rgb255 0 0 0)
+            , Border.rounded 0
+            , Element.below (Element.text "Some text below")
+            , Events.onFocus OnFocus
+            , Events.onLoseFocus OnLoseFocus
+            , Events.onClick OnClick
+            , Events.onDoubleClick OnDoubleClick
+            , Events.onMouseDown OnMouseDown
+            , Events.onMouseUp OnMouseUp
+            , Events.onMouseEnter OnMouseEnter
+            , Events.onMouseLeave OnMouseLeave
+            , Events.onMouseMove OnMouseMove
+            ]
             { onChange = ChangePicker
             , selected = model.date
             , text = model.dateText
@@ -61,6 +88,9 @@ update msg model =
                     ( { model
                         | date = Just date
                         , dateText = Date.toIsoString date
+                        , pickerModel =
+                            model.pickerModel
+                                |> DatePicker.close
                       }
                     , Cmd.none
                     )
@@ -84,7 +114,6 @@ update msg model =
                         | pickerModel =
                             model.pickerModel
                                 |> DatePicker.update subMsg
-                                |> DatePicker.open
                       }
                     , Cmd.none
                     )
@@ -98,10 +127,18 @@ update msg model =
             , Cmd.none
             )
 
+        _->
+            let
+                _ =
+                    Debug.log "Will you see this?" msg
+            in
+            ( model, Cmd.none )
+
+
 
 {-| If you want to have the date picker look crazy - you can do it!
 -}
-settings : DatePicker.Settings msg
+settings : DatePicker.Settings
 settings =
     let
         default =
