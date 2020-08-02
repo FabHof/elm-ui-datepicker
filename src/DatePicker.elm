@@ -32,6 +32,7 @@ import Internal.TestHelper as TestHelper
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
 import Time exposing (Weekday(..))
+import Time exposing (Month(..))
 
 
 
@@ -169,12 +170,18 @@ setVisibleMonth date (Model picker) =
     Model { picker | visibleMonth = date }
 
 
+setView : PickerView -> Model -> Model
+setView view (Model picker) =
+    Model { picker | view = view }
+
+
 
 --  UPDATE
 
 
 type Msg
     = ChangeMonth Date
+    | ChangeMonthAndView Date PickerView
     | Open
     | Close
     | ChangeView PickerView
@@ -243,22 +250,27 @@ type ChangeEvent
 
 {-| -}
 update : Msg -> Model -> Model
-update msg (Model picker) =
+update msg model =
     case msg of
         ChangeMonth month ->
-            setVisibleMonth month (Model picker)
+            setVisibleMonth month model
+
+        ChangeMonthAndView month view ->
+            model
+                |> setVisibleMonth month
+                |> setView view
 
         Open ->
-            open (Model picker)
+            open model
 
         Close ->
-            close (Model picker)
+            close model
 
         ChangeView view ->
-            Model { picker | view = view }
+            setView view model
 
         NothingToDo ->
-            Model picker
+            model
 
 
 
@@ -320,8 +332,8 @@ defaultSettings =
     , tableAttributes = [ Element.height Element.fill, Element.centerY ] -- [ Element.height Element.fill, spacing 4 ]
     , weekdayAttributes = [ Font.bold ]
     , dayAttributes =
-        [  --Element.paddingXY 4 2
-           --,
+        [ --Element.paddingXY 4 2
+          --,
           Border.rounded 3
         , Element.height Element.fill
         , Element.width Element.fill
@@ -490,6 +502,10 @@ selectMonthElement ({ settings, picker } as config) month =
         attributesForThisMonth =
             List.concat
                 [ extAttrs settings.dayAttributes
+                , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeMonthAndView month DaysView
+                  , Element.pointer
+                  , TestHelper.monthAttr
+                  ]
                 , if Date.month picker.today == Date.month month then
                     TestHelper.todayAttr
                         :: extAttrs settings.todayDayAttributes
@@ -502,15 +518,14 @@ selectMonthElement ({ settings, picker } as config) month =
 
                   else
                     []
-                -- TODO All Days in Month are disabled => Disable Month!
+
+                -- TODO All Days in Month are disabled => Disable Month?
                 -- , if settings.disabled day then
                 --     extAttrs settings.disabledDayAttributes
-
                 --   else
                 --     [ Events.onClick <| config.onChange <| DateChanged day, Element.pointer ]
                 ]
     in
-
     Element.el attributesForThisMonth
         (Element.text <| Date.formatMaybeLanguage settings.language "MMM" month)
 
@@ -585,7 +600,7 @@ pickerHeader { onChange, picker, settings } =
                     , Events.onClick <|
                         onChange <|
                             PickerChanged <|
-                                ChangeMonth (Date.add Date.Months 12 visibleMonth)
+                                ChangeMonth (Date.add Date.Months 12 picker.visibleMonth)
                     ]
                   <|
                     extEle settings.nextYearElement

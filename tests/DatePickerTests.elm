@@ -13,6 +13,7 @@ import Test exposing (..)
 import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
+import Time exposing (Month(..), Weekday(..))
 
 
 
@@ -37,6 +38,7 @@ suite =
         , clickDisabled
         , setTodayDoesNotOverrideVisibleMonthIfSet
         , clickOnHeaderShowsMonthSelection
+        , clickOnMonth
         ]
 
 
@@ -391,8 +393,68 @@ clickOnHeaderShowsMonthSelection =
                     Expect.fail "focus resulted in wrong changedEvent"
 
 
+clickOnMonth : Test
+clickOnMonth =
+    test "clicking a month selects it" <|
+        \_ ->
+            let
+                model =
+                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                        |> DatePicker.open
+
+                clickResult =
+                    modelToSingle model
+                        |> findCalendar
+                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text "January 2020" ] ]
+                        |> (Query.keep <| Selector.containing [ Selector.text "January 2020" ])
+                        |> (Query.keep <| Selector.tag "div")
+                        |> Query.first
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+            in
+            case clickResult of
+                Err err ->
+                    Expect.fail err
+
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    let
+                        monthViewModel =
+                            DatePicker.update msg model
+                    in
+                    Expect.all
+                        [ isInMonthView "2020"
+                        , clickOnMonthCell "Jan" (Date.fromCalendarDate 2020 Jan 1)
+                        ]
+                        monthViewModel
+
+                _ ->
+                    Expect.fail "click resulted in wrong changedEvent"
+
+
 
 -- EXPECTATIONS
+
+
+clickOnMonthCell : String -> Date -> DatePicker.Model -> Expectation
+clickOnMonthCell clickMonth expectMonth model =
+    let
+        clickResult =
+            modelToSingle model
+                |> Query.find [ Selector.attribute TestHelper.monthAttrHtml, Selector.containing [ Selector.text clickMonth ] ]
+                |> Event.simulate Event.click
+                |> Event.toResult
+    in
+    case clickResult of
+        Err err ->
+            Expect.fail err
+
+        Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+            model
+                |> DatePicker.update msg
+                |> isVisibleMonth expectMonth
+
+        _ ->
+            Expect.fail "click resulted in wrong changedEvent"
 
 
 isInMonthView : String -> DatePicker.Model -> Expectation
