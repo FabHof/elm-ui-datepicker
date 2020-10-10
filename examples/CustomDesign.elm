@@ -156,6 +156,7 @@ settings =
             ]
         , tableAttributes =
             [ padding 6, Background.color (Element.rgb255 190 210 150) ]
+        , weekdayAttributes = [ Font.color (Element.rgb255 96 96 96) ]
         , dayAttributes = []
         , wrongMonthDayAttributes =
             [ Font.light ]
