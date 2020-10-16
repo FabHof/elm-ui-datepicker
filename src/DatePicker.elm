@@ -251,6 +251,7 @@ type alias Settings =
     , pickerAttributes : List (Attribute Never)
     , headerAttributes : List (Attribute Never)
     , tableAttributes : List (Attribute Never)
+    , weekdayAttributes : List (Attribute Never)
     , dayAttributes : List (Attribute Never)
     , wrongMonthDayAttributes : List (Attribute Never)
     , todayDayAttributes : List (Attribute Never)
@@ -288,6 +289,7 @@ defaultSettings =
         , Font.bold
         ]
     , tableAttributes = [ spacing 4, centerX, centerY ]
+    , weekdayAttributes = [ Font.bold ]
     , dayAttributes =
         [ Element.paddingXY 4 2
         , Border.rounded 3
@@ -421,11 +423,11 @@ pickerTable ({ settings } as config) =
 pickerColumns : Config msg -> List (Element.Column (Week Date) msg)
 pickerColumns config =
     let
-        weekDays =
+        weekdays =
             Week.calendarWeekDays config.settings.firstDayOfWeek config.settings.language
 
         toColumn index weekday =
-            { header = Element.el [ Font.bold ] (Element.text weekday)
+            { header = Element.el (extAttrs config.settings.weekdayAttributes) (Element.text weekday)
             , width = Element.fill
             , view =
                 \week ->
@@ -433,7 +435,7 @@ pickerColumns config =
                         |> dayView config
             }
     in
-    Week.toList (Week.indexedMap toColumn weekDays)
+    Week.toList (Week.indexedMap toColumn weekdays)
 
 
 pickerHeader : Config msg -> Element msg
