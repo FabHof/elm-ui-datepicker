@@ -88,7 +88,16 @@ initWithToday today =
 -}
 setToday : Date -> Model -> Model
 setToday today (Model picker) =
-    Model { picker | today = today, visibleMonth = today }
+    Model
+        { picker
+            | today = today
+            , visibleMonth =
+                if picker.visibleMonth == Date.fromOrdinalDate 1 1 then
+                    today
+
+                else
+                    picker.visibleMonth
+        }
 
 
 {-| Closes the date picker.
@@ -331,7 +340,7 @@ type alias Config msg =
     }
 
 
-{-| Use it like you would `Input.text`, the attributes, `text`, `placeholder` and `label` will behave 
+{-| Use it like you would `Input.text`, the attributes, `text`, `placeholder` and `label` will behave
 exactly like for `Input.text`. It has however a more complex `onChange`, a `selected` date, the internal `model` and some `settings`.
 
 **Note**: `Events.onClick`, `Events.onFocus` and `Events.onLoseFocus` are used internally by the date picker.
