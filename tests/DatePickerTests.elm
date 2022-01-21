@@ -445,6 +445,17 @@ simplePicker model =
     DatePicker.input [] (simplePickerConfig model)
 
 
+simplePickerConfig :
+    DatePicker.Model
+    ->
+        { onChange : DatePicker.ChangeEvent -> Msg
+        , selected : Maybe Date
+        , text : String
+        , label : Input.Label msg
+        , placeholder : Maybe (Input.Placeholder msg)
+        , model : DatePicker.Model
+        , settings : DatePicker.Settings
+        }
 simplePickerConfig model =
     { onChange = DatePickerChanged
     , selected = Nothing

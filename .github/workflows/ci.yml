@@ -20,6 +20,9 @@ jobs:
       - name: Install elm-test
         run: npm install -g elm-test@0.19.1-revision7
 
+      - name: Run elm-review
+        run: npx elm-review
+
       - name: Run elm-coverage
         run: npx elm-coverage -r codecov
 

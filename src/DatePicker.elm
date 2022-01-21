@@ -31,7 +31,7 @@ import Internal.Date as Date
 import Internal.TestHelper as TestHelper
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
-import Time exposing (Month(..), Weekday(..))
+import Time exposing (Weekday(..))
 
 
 
