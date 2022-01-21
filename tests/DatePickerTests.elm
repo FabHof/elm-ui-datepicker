@@ -35,6 +35,7 @@ suite =
         , selectedDay
         , clickDay
         , clickDisabled
+        , setTodayDoesNotOverrideVisibleMonthIfSet
         ]
 
 
@@ -134,9 +135,9 @@ initSetTodayIsInitWithToday =
             Expect.equal setToday withToday
 
 
-setTodayDontOverrideVisibleMonthIfSet : Test
-setTodayDontOverrideVisibleMonthIfSet =
-    fuzz2 (intRange 1000 3000) (intRange 1 334) "init + setToday = initWithToday" <|
+setTodayDoesNotOverrideVisibleMonthIfSet : Test
+setTodayDoesNotOverrideVisibleMonthIfSet =
+    fuzz2 (intRange 1000 3000) (intRange 1 334) "setToday does not override visibleMonth" <|
         \year day ->
             let
                 date =
@@ -149,6 +150,7 @@ setTodayDontOverrideVisibleMonthIfSet =
                     DatePicker.init
                         |> DatePicker.setVisibleMonth visibleMonth
                         |> DatePicker.setToday date
+                        |> DatePicker.open
             in
             isVisibleMonth visibleMonth model
 
