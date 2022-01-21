@@ -9,17 +9,20 @@ jobs:
   build-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.4.0
+
       - name: Setup Elm
-        uses: justgook/setup-elm@v1      
+        uses: JorelAli/setup-elm@v3
+
       - name: Build example
         run:  elm make CloseOnEnter.elm --output=../docs/index.html
         working-directory: ./examples
+        
       - name: GitHub Pages
-        uses: crazy-max/ghaction-github-pages@v1.2.5
+        uses: crazy-max/ghaction-github-pages@v2.6.0
         with:
           target_branch: gh-pages
           allow_empty_commit: false
           build_dir: ./docs
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
