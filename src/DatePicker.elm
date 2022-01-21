@@ -88,7 +88,16 @@ initWithToday today =
 -}
 setToday : Date -> Model -> Model
 setToday today (Model picker) =
-    Model { picker | today = today, visibleMonth = today }
+    Model
+        { picker
+            | today = today
+            , visibleMonth =
+                if picker.visibleMonth == Date.fromOrdinalDate 1 1 then
+                    today
+
+                else
+                    picker.visibleMonth
+        }
 
 
 {-| Closes the date picker.

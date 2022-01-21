@@ -134,6 +134,25 @@ initSetTodayIsInitWithToday =
             Expect.equal setToday withToday
 
 
+setTodayDontOverrideVisibleMonthIfSet : Test
+setTodayDontOverrideVisibleMonthIfSet =
+    fuzz2 (intRange 1000 3000) (intRange 1 334) "init + setToday = initWithToday" <|
+        \year day ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                visibleMonth =
+                    Date.fromOrdinalDate year 336
+
+                model =
+                    DatePicker.init
+                        |> DatePicker.setVisibleMonth visibleMonth
+                        |> DatePicker.setToday date
+            in
+            isVisibleMonth visibleMonth model
+
+
 todayIsVisibleOnInit : Test
 todayIsVisibleOnInit =
     fuzz2 (intRange 1000 3000) (intRange 1 366) "today is visible month" <|
@@ -309,11 +328,14 @@ clickDisabled =
                 |> Event.simulate Event.click
                 |> Event.toResult
                 |> Expect.err
-                -- |> Event.expect
-                --     (DatePickerChanged <|
-                --         DatePicker.DateChanged <|
-                --             Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
-                --     )
+
+
+
+-- |> Event.expect
+--     (DatePickerChanged <|
+--         DatePicker.DateChanged <|
+--             Date.fromCalendarDate (Date.year date) (Date.month date) dayToSelect
+--     )
 
 
 intTo2DigitString : Int -> String
