@@ -39,6 +39,8 @@ suite =
         , setTodayDoesNotOverrideVisibleMonthIfSet
         , clickOnHeaderShowsMonthSelection
         , clickOnMonth
+        , clickOnMonthHeaderShowsYearSelection
+        , clickOnYear
         ]
 
 
@@ -342,18 +344,18 @@ intTo2DigitString num =
 
 selectedDay : Test
 selectedDay =
-    test "selected day is there" <|
-        \_ ->
+    fuzz2 (intRange 1000 3000) (intRange 1 365) "selected day is there" <|
+        \year day ->
             let
                 model =
-                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                    DatePicker.initWithToday (Date.fromOrdinalDate year day)
                         |> DatePicker.open
 
                 simpleConfig =
                     simplePickerConfig model
 
                 selectedConfig =
-                    { simpleConfig | selected = Just <| Date.fromOrdinalDate 2020 1 }
+                    { simpleConfig | selected = Just <| Date.fromOrdinalDate year day }
             in
             DatePicker.input [] selectedConfig
                 |> toHtml
@@ -363,18 +365,24 @@ selectedDay =
 
 clickOnHeaderShowsMonthSelection : Test
 clickOnHeaderShowsMonthSelection =
-    test "clicking header shows month selection" <|
-        \_ ->
+    fuzz2 (intRange 1000 3000) (intRange 1 365) "clicking header shows month selection" <|
+        \year day ->
             let
+                date =
+                    Date.fromOrdinalDate year day
+
+                selectorText =
+                    Date.format "MMMM yyyy" date
+
                 model =
-                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                    DatePicker.initWithToday date
                         |> DatePicker.open
 
                 clickResult =
                     modelToSingle model
                         |> findCalendar
-                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text "January 2020" ] ]
-                        |> (Query.keep <| Selector.containing [ Selector.text "January 2020" ])
+                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text selectorText ] ]
+                        |> (Query.keep <| Selector.containing [ Selector.text selectorText ])
                         |> (Query.keep <| Selector.tag "div")
                         |> Query.first
                         |> Event.simulate Event.click
@@ -387,7 +395,7 @@ clickOnHeaderShowsMonthSelection =
                 Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
                     model
                         |> DatePicker.update msg
-                        |> isInMonthView "2020"
+                        |> isInMonthView year
 
                 _ ->
                     Expect.fail "focus resulted in wrong changedEvent"
@@ -395,18 +403,68 @@ clickOnHeaderShowsMonthSelection =
 
 clickOnMonth : Test
 clickOnMonth =
-    test "clicking a month selects it" <|
-        \_ ->
+    fuzz3 (intRange 1000 3000) (intRange 1 365) (intRange 1 12) "clicking a month selects it" <|
+        \year day selectMonthNumber ->
             let
+                date =
+                    Date.fromOrdinalDate year day
+
+                selectMonth =
+                    selectMonthNumber
+                        |> Date.numberToMonth
+
+                selectorText =
+                    selectMonth
+                        |> (\m ->
+                                Date.fromCalendarDate year m 1
+                                    |> (\d -> Date.format "MMM" d)
+                           )
+
                 model =
-                    DatePicker.initWithToday (Date.fromOrdinalDate 2020 1)
+                    DatePicker.initWithToday date
+                        |> DatePicker.setSelectorLevel DatePicker.MonthsLevel
+                        |> DatePicker.open
+
+                clickResult =
+                    modelToSingle model
+                        |> Query.find [ Selector.attribute TestHelper.monthAttrHtml, Selector.containing [ Selector.text selectorText ] ]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+            in
+            case clickResult of
+                Err err ->
+                    Expect.fail err
+
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    model
+                        |> DatePicker.update msg
+                        |> isVisibleMonth (Date.fromCalendarDate year selectMonth 1)
+
+                _ ->
+                    Expect.fail "click resulted in wrong changedEvent"
+
+
+clickOnMonthHeaderShowsYearSelection : Test
+clickOnMonthHeaderShowsYearSelection =
+    fuzz2 (intRange 1000 3000) (intRange 1 365) "click on month header shows year selection" <|
+        \year day ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                selectorText =
+                    Date.format "yyyy" date
+
+                model =
+                    DatePicker.initWithToday date
+                        |> DatePicker.setSelectorLevel DatePicker.MonthsLevel
                         |> DatePicker.open
 
                 clickResult =
                     modelToSingle model
                         |> findCalendar
-                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text "January 2020" ] ]
-                        |> (Query.keep <| Selector.containing [ Selector.text "January 2020" ])
+                        |> Query.findAll [ Selector.tag "div", Selector.containing [ Selector.text selectorText ] ]
+                        |> (Query.keep <| Selector.containing [ Selector.text selectorText ])
                         |> (Query.keep <| Selector.tag "div")
                         |> Query.first
                         |> Event.simulate Event.click
@@ -417,15 +475,47 @@ clickOnMonth =
                     Expect.fail err
 
                 Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
-                    let
-                        monthViewModel =
-                            DatePicker.update msg model
-                    in
-                    Expect.all
-                        [ isInMonthView "2020"
-                        , clickOnMonthCell "Jan" (Date.fromCalendarDate 2020 Jan 1)
-                        ]
-                        monthViewModel
+                    model
+                        |> DatePicker.update msg
+                        |> isInYearView year
+
+                _ ->
+                    Expect.fail "focus resulted in wrong changedEvent"
+
+
+clickOnYear : Test
+clickOnYear =
+    fuzz3 (intRange 1000 3000) (intRange 1 365) (intRange -1 10) "clicking a year selects it" <|
+        \year day selectYearIndex ->
+            let
+                date =
+                    Date.fromOrdinalDate year day
+
+                selectYear =
+                    year // 10 * 10 + selectYearIndex
+
+                selectorText =
+                    String.fromInt selectYear
+
+                model =
+                    DatePicker.initWithToday date
+                        |> DatePicker.setSelectorLevel DatePicker.YearsLevel
+                        |> DatePicker.open
+
+                clickResult =
+                    modelToSingle model
+                        |> Query.find [ Selector.attribute TestHelper.yearAttrHtml, Selector.containing [ Selector.text selectorText ] ]
+                        |> Event.simulate Event.click
+                        |> Event.toResult
+            in
+            case clickResult of
+                Err err ->
+                    Expect.fail err
+
+                Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
+                    model
+                        |> DatePicker.update msg
+                        |> isInMonthView selectYear
 
                 _ ->
                     Expect.fail "click resulted in wrong changedEvent"
@@ -435,42 +525,55 @@ clickOnMonth =
 -- EXPECTATIONS
 
 
-clickOnMonthCell : String -> Date -> DatePicker.Model -> Expectation
-clickOnMonthCell clickMonth expectMonth model =
-    let
-        clickResult =
-            modelToSingle model
-                |> Query.find [ Selector.attribute TestHelper.monthAttrHtml, Selector.containing [ Selector.text clickMonth ] ]
-                |> Event.simulate Event.click
-                |> Event.toResult
-    in
-    case clickResult of
-        Err err ->
-            Expect.fail err
-
-        Ok (DatePickerChanged (DatePicker.PickerChanged msg)) ->
-            model
-                |> DatePicker.update msg
-                |> isVisibleMonth expectMonth
-
-        _ ->
-            Expect.fail "click resulted in wrong changedEvent"
-
-
-isInMonthView : String -> DatePicker.Model -> Expectation
+isInMonthView : Int -> DatePicker.Model -> Expectation
 isInMonthView year model =
+    let
+        intToMothQuery value =
+            value
+                |> Date.numberToMonth
+                |> (\m ->
+                        Date.fromCalendarDate 2000 m 1
+                            |> (\d ->
+                                    Date.format "MMM" d
+                                        |> (\ms -> Query.has [ Selector.text ms ])
+                               )
+                   )
+    in
     modelToSingle model
         |> Expect.all
-            (Query.has [ Selector.text year ]
+            (Query.has [ year |> String.fromInt |> Selector.text ]
                 :: (List.range 1 12
-                        |> List.map (\m -> Date.numberToMonth m)
-                        |> List.map (\m -> Date.fromCalendarDate 2020 m 1)
-                        |> List.map (\d -> Date.format "MMM" d)
-                        |> List.map (\m -> Query.has [ Selector.text m ])
+                        |> List.map intToMothQuery
                    )
-             -- [ Query.has [ Selector.text "Jan" ]
-             --    , Query.has [ Selector.text "Feb" ]
-             --    ]
+            )
+
+
+isInYearView : Int -> DatePicker.Model -> Expectation
+isInYearView year model =
+    let
+        decade =
+            year // 10 * 10
+
+        decadeStr =
+            decade
+                |> String.fromInt
+                |> String.slice 0 3
+                |> String.padRight 4 'X'
+    in
+    modelToSingle model
+        |> Expect.all
+            (Query.has [ Selector.text decadeStr ]
+                :: (List.range -1 10
+                        |> List.map ((+) decade)
+                        |> List.map
+                            (\y ->
+                                Query.has
+                                    [ y
+                                        |> String.fromInt
+                                        |> Selector.text
+                                    ]
+                            )
+                   )
             )
 
 

@@ -1,6 +1,7 @@
 module DatePicker exposing
     ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
     , close, open, setVisibleMonth
+    , SelectorLevel(..), setSelectorLevel
     )
 
 {-|
@@ -31,8 +32,7 @@ import Internal.Date as Date
 import Internal.TestHelper as TestHelper
 import Internal.Week as Week exposing (Week)
 import Json.Decode as Decode
-import Time exposing (Weekday(..))
-import Time exposing (Month(..))
+import Time exposing (Month(..), Weekday(..))
 
 
 
@@ -48,7 +48,7 @@ type alias Picker =
     { open : Bool
     , today : Date
     , visibleMonth : Date
-    , view : PickerView
+    , level : SelectorLevel
     }
 
 
@@ -72,7 +72,7 @@ init =
         { open = False
         , today = Date.fromOrdinalDate 1 1
         , visibleMonth = Date.fromOrdinalDate 1 1
-        , view = DaysView
+        , level = DaysLevel
         }
 
 
@@ -84,7 +84,7 @@ initWithToday today =
         { open = False
         , today = today
         , visibleMonth = today
-        , view = DaysView
+        , level = DaysLevel
         }
 
 
@@ -170,9 +170,11 @@ setVisibleMonth date (Model picker) =
     Model { picker | visibleMonth = date }
 
 
-setView : PickerView -> Model -> Model
-setView view (Model picker) =
-    Model { picker | view = view }
+{-| Sets the selector level that is visible when date picker is open.
+-}
+setSelectorLevel : SelectorLevel -> Model -> Model
+setSelectorLevel level (Model picker) =
+    Model { picker | level = level }
 
 
 
@@ -181,17 +183,20 @@ setView view (Model picker) =
 
 type Msg
     = ChangeMonth Date
-    | ChangeMonthAndView Date PickerView
+    | ChangeMonthAndLevel Date SelectorLevel
+    | ChangeYearAndLevel Int SelectorLevel
     | Open
     | Close
-    | ChangeView PickerView
+    | ChangeLevel SelectorLevel
     | NothingToDo
 
 
-type PickerView
-    = DaysView
-    | MonthsView
-    | YearsView
+{-| The different selector levels the date picker can show.
+-}
+type SelectorLevel
+    = DaysLevel
+    | MonthsLevel
+    | YearsLevel
 
 
 {-| Use in your update function:
@@ -255,10 +260,15 @@ update msg model =
         ChangeMonth month ->
             setVisibleMonth month model
 
-        ChangeMonthAndView month view ->
+        ChangeMonthAndLevel month view ->
             model
                 |> setVisibleMonth month
-                |> setView view
+                |> setSelectorLevel view
+
+        ChangeYearAndLevel year view ->
+            model
+                |> setVisibleMonth (Date.fromOrdinalDate year 1)
+                |> setSelectorLevel view
 
         Open ->
             open model
@@ -266,8 +276,8 @@ update msg model =
         Close ->
             close model
 
-        ChangeView view ->
-            setView view model
+        ChangeLevel view ->
+            setSelectorLevel view model
 
         NothingToDo ->
             model
@@ -292,10 +302,9 @@ type alias Settings =
     , selectedDayAttributes : List (Attribute Never)
     , disabledDayAttributes : List (Attribute Never)
     , monthsTableAttributes : List (Attribute Never)
+    , yearsTableAttributes : List (Attribute Never)
     , previousMonthElement : Element Never
     , nextMonthElement : Element Never
-    , previousYearElement : Element Never
-    , nextYearElement : Element Never
     }
 
 
@@ -352,14 +361,11 @@ defaultSettings =
         , Background.color (Element.rgb255 0xDD 0xDD 0xDD)
         ]
     , monthsTableAttributes = [ Element.spaceEvenly, Element.width Element.fill, Element.height Element.fill ]
+    , yearsTableAttributes = [ Element.spaceEvenly, Element.width Element.fill, Element.height Element.fill ]
     , previousMonthElement =
         Element.text "<"
     , nextMonthElement =
         Element.text ">"
-    , previousYearElement =
-        Element.text "<<"
-    , nextYearElement =
-        Element.text ">>"
     }
 
 
@@ -463,18 +469,38 @@ pickerView ({ settings } as config) =
 
 pickerTable : Config msg -> Element msg
 pickerTable ({ settings, picker } as config) =
-    case picker.view of
-        DaysView ->
+    case picker.level of
+        DaysLevel ->
             Element.table (TestHelper.tableAttr :: extAttrs settings.tableAttributes)
                 { data = Week.weeksInMonth picker.visibleMonth config.settings.firstDayOfWeek
                 , columns = pickerColumns config
                 }
 
-        MonthsView ->
+        MonthsLevel ->
             monthTable config
 
-        YearsView ->
-            Debug.todo "YearsView"
+        YearsLevel ->
+            let
+                decade =
+                    Date.year picker.visibleMonth // 10 * 10
+            in
+            Element.column (TestHelper.tableAttr :: extAttrs settings.yearsTableAttributes)
+                (List.range 0 2
+                    |> List.map
+                        (\i ->
+                            Element.row (extAttrs settings.yearsTableAttributes)
+                                (List.range -1 2
+                                    |> List.map
+                                        (\j ->
+                                            4
+                                                * i
+                                                + j
+                                                + decade
+                                                |> selectYearElement config
+                                        )
+                                )
+                        )
+                )
 
 
 monthTable : Config msg -> Element msg
@@ -496,23 +522,67 @@ monthTable ({ settings, picker } as config) =
         )
 
 
+selectYearElement : Config msg -> Int -> Element msg
+selectYearElement ({ settings, picker } as config) year =
+    let
+        attributesForThisYear =
+            List.concat
+                [ extAttrs settings.dayAttributes
+                , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeYearAndLevel year MonthsLevel
+                  , Element.pointer
+                  , TestHelper.yearAttr
+                  ]
+                , if
+                    Date.year picker.today
+                        == year
+                  then
+                    TestHelper.todayAttr
+                        :: extAttrs settings.todayDayAttributes
+
+                  else
+                    []
+                , if
+                    Maybe.map Date.year config.selected
+                        == Just year
+                  then
+                    TestHelper.selectedAttr
+                        :: extAttrs settings.selectedDayAttributes
+
+                  else
+                    []
+                ]
+    in
+    Element.el attributesForThisYear
+        (Element.text <| String.fromInt year)
+
+
 selectMonthElement : Config msg -> Date -> Element msg
 selectMonthElement ({ settings, picker } as config) month =
     let
         attributesForThisMonth =
             List.concat
                 [ extAttrs settings.dayAttributes
-                , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeMonthAndView month DaysView
+                , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeMonthAndLevel month DaysLevel
                   , Element.pointer
                   , TestHelper.monthAttr
                   ]
-                , if Date.month picker.today == Date.month month then
+                , if
+                    Date.month picker.today
+                        == Date.month month
+                        && Date.year picker.today
+                        == Date.year month
+                  then
                     TestHelper.todayAttr
                         :: extAttrs settings.todayDayAttributes
 
                   else
                     []
-                , if Maybe.map Date.month config.selected == Just (Date.month month) then
+                , if
+                    Maybe.map Date.month config.selected
+                        == Just (Date.month month)
+                        && Maybe.map Date.year config.selected
+                        == Just (Date.year month)
+                  then
                     TestHelper.selectedAttr
                         :: extAttrs settings.selectedDayAttributes
 
@@ -550,8 +620,8 @@ pickerColumns config =
 
 pickerHeader : Config msg -> Element msg
 pickerHeader { onChange, picker, settings } =
-    case picker.view of
-        DaysView ->
+    case picker.level of
+        DaysLevel ->
             Element.row (extAttrs settings.headerAttributes)
                 [ Element.el
                     [ alignLeft
@@ -559,25 +629,15 @@ pickerHeader { onChange, picker, settings } =
                     , Events.onClick <|
                         onChange <|
                             PickerChanged <|
-                                ChangeMonth (Date.add Date.Months -12 picker.visibleMonth)
-                    ]
-                  <|
-                    extEle settings.previousYearElement
-                , Element.el
-                    [ alignLeft
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
                                 ChangeMonth (Date.add Date.Months -1 picker.visibleMonth)
                     , TestHelper.previousMonthAttr
-                    , Element.paddingEach { top = 0, left = 6, right = 0, bottom = 0 }
                     ]
                   <|
                     extEle settings.previousMonthElement
                 , Element.el
                     [ centerX
-                    , Events.onClick <| onChange <| PickerChanged <| ChangeView MonthsView
+                    , Element.pointer
+                    , Events.onClick <| onChange <| PickerChanged <| ChangeLevel MonthsLevel
                     ]
                   <|
                     Element.text <|
@@ -590,23 +650,12 @@ pickerHeader { onChange, picker, settings } =
                             PickerChanged <|
                                 ChangeMonth (Date.add Date.Months 1 picker.visibleMonth)
                     , TestHelper.nextMonthAttr
-                    , Element.paddingEach { top = 0, left = 0, right = 6, bottom = 0 }
                     ]
                   <|
                     extEle settings.nextMonthElement
-                , Element.el
-                    [ alignRight
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Months 12 picker.visibleMonth)
-                    ]
-                  <|
-                    extEle settings.nextYearElement
                 ]
 
-        MonthsView ->
+        MonthsLevel ->
             Element.row (extAttrs settings.headerAttributes)
                 [ Element.el
                     [ alignLeft
@@ -621,7 +670,8 @@ pickerHeader { onChange, picker, settings } =
                     extEle settings.previousMonthElement
                 , Element.el
                     [ centerX
-                    , Events.onClick <| onChange <| PickerChanged <| ChangeView MonthsView
+                    , Element.pointer
+                    , Events.onClick <| onChange <| PickerChanged <| ChangeLevel YearsLevel
                     ]
                   <|
                     Element.text <|
@@ -639,7 +689,7 @@ pickerHeader { onChange, picker, settings } =
                     extEle settings.nextMonthElement
                 ]
 
-        YearsView ->
+        YearsLevel ->
             Element.row (extAttrs settings.headerAttributes)
                 [ Element.el
                     [ alignLeft
@@ -647,20 +697,19 @@ pickerHeader { onChange, picker, settings } =
                     , Events.onClick <|
                         onChange <|
                             PickerChanged <|
-                                ChangeMonth (Date.add Date.Years -1 picker.visibleMonth)
+                                ChangeMonth (Date.add Date.Years -10 picker.visibleMonth)
                     , TestHelper.previousMonthAttr
                     ]
                   <|
                     extEle settings.previousMonthElement
                 , Element.el
                     [ centerX
-                    , Events.onClick <| onChange <| PickerChanged <| ChangeView MonthsView
                     ]
                   <|
                     Element.text <|
                         (Date.formatMaybeLanguage settings.language "yyyy" picker.visibleMonth
-                            |> String.slice 0 2
-                            |> String.padRight 4 '0'
+                            |> String.slice 0 3
+                            |> String.padRight 4 'X'
                         )
                 , Element.el
                     [ alignRight
@@ -668,7 +717,7 @@ pickerHeader { onChange, picker, settings } =
                     , Events.onClick <|
                         onChange <|
                             PickerChanged <|
-                                ChangeMonth (Date.add Date.Years 1 picker.visibleMonth)
+                                ChangeMonth (Date.add Date.Years 10 picker.visibleMonth)
                     , TestHelper.nextMonthAttr
                     ]
                   <|

@@ -17,6 +17,8 @@ module Internal.TestHelper exposing
     , tableAttrHtml
     , todayAttr
     , todayAttrHtml
+    , yearAttr
+    , yearAttrHtml
     )
 
 import Element exposing (Attribute)
@@ -121,6 +123,17 @@ monthAttr =
 monthAttrHtml : Html.Attribute msg
 monthAttrHtml =
     testAttribute "month"
+
+
+yearAttr : Attribute msg
+yearAttr =
+    yearAttrHtml
+        |> Element.htmlAttribute
+
+
+yearAttrHtml : Html.Attribute msg
+yearAttrHtml =
+    testAttribute "year"
 
 
 testAttribute : String -> Html.Attribute msg
