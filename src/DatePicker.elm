@@ -297,6 +297,7 @@ type alias Settings =
     , tableAttributes : List (Attribute Never)
     , weekdayAttributes : List (Attribute Never)
     , dayAttributes : List (Attribute Never)
+    , monthYearAttribute : List (Attribute Never)
     , wrongMonthDayAttributes : List (Attribute Never)
     , todayDayAttributes : List (Attribute Never)
     , selectedDayAttributes : List (Attribute Never)
@@ -330,7 +331,6 @@ defaultSettings =
         , Element.centerX
         , Element.centerY
         , Element.width Element.fill
-        , Element.height <| Element.px 218
         , Background.color <| Element.rgb255 255 255 255
         ]
     , headerAttributes =
@@ -338,15 +338,24 @@ defaultSettings =
         , padding 2
         , Font.bold
         ]
-    , tableAttributes = [ Element.height Element.fill, Element.centerY ] -- [ Element.height Element.fill, spacing 4 ]
+    , tableAttributes =
+        [ Element.height Element.fill
+        , Element.centerY
+        ]
     , weekdayAttributes = [ Font.bold ]
     , dayAttributes =
-        [ --Element.paddingXY 4 2
-          --,
-          Border.rounded 3
-        , Element.height Element.fill
+        [ Border.rounded 3
+        , padding 3
         , Element.width Element.fill
-        , Element.centerX
+        , Font.center
+        , Element.centerY
+        , Element.mouseOver [ Background.color (Element.rgb255 0x73 0xB6 0xFF) ]
+        ]
+    , monthYearAttribute =
+        [ Border.rounded 3
+        , padding 11
+        , Element.width Element.fill
+        , Font.center
         , Element.centerY
         , Element.mouseOver [ Background.color (Element.rgb255 0x73 0xB6 0xFF) ]
         ]
@@ -360,8 +369,16 @@ defaultSettings =
         [ Font.color (Element.rgb255 0x80 0x80 0x80)
         , Background.color (Element.rgb255 0xDD 0xDD 0xDD)
         ]
-    , monthsTableAttributes = [ Element.spaceEvenly, Element.width Element.fill, Element.height Element.fill ]
-    , yearsTableAttributes = [ Element.spaceEvenly, Element.width Element.fill, Element.height Element.fill ]
+    , monthsTableAttributes =
+        [ Element.spaceEvenly
+        , Element.width Element.fill
+        , Element.height Element.fill
+        ]
+    , yearsTableAttributes =
+        [ Element.spaceEvenly
+        , Element.width Element.fill
+        , Element.height Element.fill
+        ]
     , previousMonthElement =
         Element.text "<"
     , nextMonthElement =
@@ -527,7 +544,7 @@ selectYearElement ({ settings, picker } as config) year =
     let
         attributesForThisYear =
             List.concat
-                [ extAttrs settings.dayAttributes
+                [ extAttrs settings.monthYearAttribute
                 , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeYearAndLevel year MonthsLevel
                   , Element.pointer
                   , TestHelper.yearAttr
@@ -561,7 +578,7 @@ selectMonthElement ({ settings, picker } as config) month =
     let
         attributesForThisMonth =
             List.concat
-                [ extAttrs settings.dayAttributes
+                [ extAttrs settings.monthYearAttribute
                 , [ Events.onClick <| config.onChange <| PickerChanged <| ChangeMonthAndLevel month DaysLevel
                   , Element.pointer
                   , TestHelper.monthAttr
