@@ -6,7 +6,6 @@
   "author": "FabHof <35104465+FabHof@users.noreply.github.com>",
   "license": "BSD 3-Clause License",
   "devDependencies": {
-    "elm-review": "^2.7.0",
-    "elm-spec-runner": "^1.4.0"
+    "elm-review": "^2.7.0"
   }
 }

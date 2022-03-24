@@ -9,7 +9,11 @@
             "elm/core": "1.0.5",
             "jfmengels/elm-review": "2.6.2",
             "jfmengels/elm-review-common": "1.2.0",
+            "jfmengels/elm-review-simplify": "2.0.8",
+            "jfmengels/elm-review-the-elm-architecture": "1.0.3",
             "jfmengels/elm-review-unused": "1.1.20",
+            "sparksp/elm-review-camelcase": "1.1.0",
+            "sparksp/elm-review-imports": "1.0.1",
             "stil4m/elm-syntax": "7.2.8"
         },
         "indirect": {

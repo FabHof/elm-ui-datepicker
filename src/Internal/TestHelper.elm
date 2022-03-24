@@ -5,6 +5,8 @@ module Internal.TestHelper exposing
     , dayInMonthAttrHtml
     , inputAttr
     , inputAttrHtml
+    , monthAttr
+    , monthAttrHtml
     , nextMonthAttr
     , nextMonthAttrHtml
     , previousMonthAttr
@@ -15,6 +17,8 @@ module Internal.TestHelper exposing
     , tableAttrHtml
     , todayAttr
     , todayAttrHtml
+    , yearAttr
+    , yearAttrHtml
     )
 
 import Element exposing (Attribute)
@@ -108,6 +112,28 @@ selectedAttr =
 selectedAttrHtml : Html.Attribute msg
 selectedAttrHtml =
     testAttribute "selected"
+
+
+monthAttr : Attribute msg
+monthAttr =
+    monthAttrHtml
+        |> Element.htmlAttribute
+
+
+monthAttrHtml : Html.Attribute msg
+monthAttrHtml =
+    testAttribute "month"
+
+
+yearAttr : Attribute msg
+yearAttr =
+    yearAttrHtml
+        |> Element.htmlAttribute
+
+
+yearAttrHtml : Html.Attribute msg
+yearAttrHtml =
+    testAttribute "year"
 
 
 testAttribute : String -> Html.Attribute msg

@@ -26,13 +26,10 @@ jobs:
       - name: Run elm-coverage
         run: npx elm-coverage -r codecov
 
-      - name: Upload to codecov  
+      - name: Upload to codecov
         uses: codecov/codecov-action@v2.1.0
         with:
           file: .coverage/codecov.json
-
-      - name: Run elm-spec
-        run: npx elm-spec
 
       - name: Compile examples
         run: elm make *.elm

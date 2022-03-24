@@ -27,6 +27,7 @@ init =
     ( { date = Nothing
       , dateText = ""
       , pickerModel = DatePicker.init
+                                |> DatePicker.open
       }
     , Task.perform SetToday Date.today
     )
@@ -34,8 +35,8 @@ init =
 
 view : Model -> Html Msg
 view model =
-    Element.layout [ Element.width Element.shrink ] <|
-        DatePicker.input [ Element.centerX, Element.centerY ]
+    Element.layout [ ] <|
+        DatePicker.input [ Element.width Element.shrink, Element.centerX, Element.centerY ]
             { onChange = ChangePicker
             , selected = model.date
             , text = model.dateText
