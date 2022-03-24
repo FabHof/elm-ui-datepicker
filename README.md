@@ -1,4 +1,4 @@
-# Date Picker [![release](https://github-basic-badges.herokuapp.com/release/FabHof/elm-ui-datepicker.svg)](https://package.elm-lang.org/packages/fabhof/elm-ui-datepicker/latest/) [![codecov](https://codecov.io/gh/FabHof/elm-ui-datepicker/branch/master/graph/badge.svg)](https://codecov.io/gh/FabHof/elm-ui-datepicker) ![CI](https://github.com/FabHof/elm-ui-datepicker/workflows/CI/badge.svg?branch=master)
+# Date Picker [![release](https://github-basic-badges.herokuapp.com/release/FabHof/elm-ui-datepicker.svg)](https://package.elm-lang.org/packages/fabhof/elm-ui-datepicker/latest/) [![codecov](https://codecov.io/gh/FabHof/elm-ui-datepicker/branch/main/graph/badge.svg)](https://codecov.io/gh/FabHof/elm-ui-datepicker) ![CI](https://github.com/FabHof/elm-ui-datepicker/workflows/CI/badge.svg?branch=main)
 
 A reasonable date picker for the awesome [elm-ui](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/).
 
@@ -8,9 +8,11 @@ It also depends on [justinmimbs/date](https://package.elm-lang.org/packages/just
 
 [See it in action here.](https://fabhof.github.io/elm-ui-datepicker/)
 
+For a rough changelog please see the [release page on github](https://github.com/FabHof/elm-ui-datepicker/releases).
+
 ## Usage
 
-It makes the most sense if you look at the [simple example](https://github.com/FabHof/elm-ui-datepicker/blob/master/examples/Simple.elm) and the [other examples](https://github.com/FabHof/elm-ui-datepicker/tree/master/examples).
+It makes the most sense if you look at the [simple example](https://github.com/FabHof/elm-ui-datepicker/blob/main/examples/Simple.elm) and the [other examples](https://github.com/FabHof/elm-ui-datepicker/tree/main/examples).
 
 The date picker *has* an internal Model, but it does hold neither the selected date, nor the text of the underlying `Element.Input.text`. Therefore your minimal working model looks like this:
 

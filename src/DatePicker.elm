@@ -303,7 +303,7 @@ update msg model =
 {-| All the possible configuration settings.
 You probably want to start at the [defaultSettings](DatePicker#defaultSettings) and only change what you need.
 It's probably easiest to look at the [`code`][githubCode] to see where each attribute list is used for.
-[githubCode]: <https://github.com/FabHof/elm-ui-datepicker/blob/master/src/DatePicker.elm#L308>
+[githubCode]: <https://github.com/FabHof/elm-ui-datepicker/blob/main/src/DatePicker.elm#L308>
 -}
 type alias Settings =
     { firstDayOfWeek : Weekday
