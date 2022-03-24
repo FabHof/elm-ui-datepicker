@@ -1,7 +1,6 @@
 module DatePicker exposing
     ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
-    , close, open, setVisibleMonth
-    , SelectorLevel(..), setSelectorLevel, Language
+    , close, open, setVisibleMonth, SelectorLevel(..), setSelectorLevel, Language
     )
 
 {-|
@@ -184,6 +183,7 @@ Example: start on the year level:
           }
         , Task.perform SetToday Date.today
         )
+
 -}
 setSelectorLevel : SelectorLevel -> Model -> Model
 setSelectorLevel level (Model picker) =
@@ -265,6 +265,7 @@ type ChangeEvent
     | TextChanged String
     | PickerChanged Msg
 
+
 {-| -}
 update : Msg -> Model -> Model
 update msg model =
@@ -299,7 +300,11 @@ update msg model =
 -- VIEW
 
 
-{-| -}
+{-| All the possible configuration settings.
+You probably want to start at the [defaultSettings](DatePicker#defaultSettings) and only change what you need.
+It's probably easiest to look at the [`code`][githubCode] to see where each attribute list is used for.
+[githubCode]: <https://github.com/FabHof/elm-ui-datepicker/blob/master/src/DatePicker.elm#L308>
+-}
 type alias Settings =
     { firstDayOfWeek : Weekday
     , language : Maybe Language
