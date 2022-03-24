@@ -1,11 +1,8 @@
 {
   "name": "elm-ui-datepicker",
-  "version": "0.0.0",
+  "version": "5.0.0",
   "description": "see elm.json",
   "repository": "https://github.com/FabHof/elm-ui-datepicker.git",
   "author": "FabHof <35104465+FabHof@users.noreply.github.com>",
-  "license": "BSD 3-Clause License",
-  "devDependencies": {
-    "elm-review": "^2.7.1"
-  }
+  "license": "BSD 3-Clause License"
 }
