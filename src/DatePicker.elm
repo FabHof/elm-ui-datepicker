@@ -383,7 +383,6 @@ defaultSettings =
     , headerButtonsAttributes =
         [ Element.pointer
         , padding 6
-        , TestHelper.nextMonthAttr
         , Border.rounded 3
         , Border.shadow
             { offset = ( 1, 1 )
@@ -401,9 +400,9 @@ defaultSettings =
             ]
         ]
     , previousMonthElement =
-        Element.text "<"
+        Element.text "🢐"
     , nextMonthElement =
-        Element.text ">"
+        Element.text "🢒"
     }
 
 
@@ -694,6 +693,7 @@ pickerHeader { onChange, picker, settings } =
     Element.row (extAttrs settings.headerAttributes)
         [ Input.button
             (alignLeft
+                :: TestHelper.previousMonthAttr
                 :: extAttrs settings.headerButtonsAttributes
             )
             { onPress =
@@ -712,6 +712,7 @@ pickerHeader { onChange, picker, settings } =
             }
         , Input.button
             (alignRight
+                :: TestHelper.nextMonthAttr
                 :: extAttrs settings.headerButtonsAttributes
             )
             { onPress =
