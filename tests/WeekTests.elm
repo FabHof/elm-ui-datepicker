@@ -114,16 +114,11 @@ calendarWeekDays =
         ]
 
 
-millisecondsInADay : number
-millisecondsInADay =
-    1000*60*60*24
-
-
 weeksInMonth : Test
 weeksInMonth =
     describe "Week.weeksInMonth"
         [ fuzz3 (intRange 1 31) (intRange 1000 3000) (intRange 1 7) "same result for every day in the month" <|
-            \fuzzDay fuzzYear fuzzWeekDay->
+            \fuzzDay fuzzYear fuzzWeekDay ->
                 let
                     weekday =
                         Date.numberToWeekday fuzzWeekDay
