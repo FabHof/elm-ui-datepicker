@@ -16,7 +16,7 @@ module DatePicker exposing
 
 For when you want to be more in control
 
-@docs close, open, setVisibleMonth
+@docs close, open, setVisibleMonth, SelectorLevel, setSelectorLevel, Language
 
 -}
 
@@ -142,7 +142,7 @@ close (Model picker) =
         }
 
 
-{-| Opens the date picker
+{-| Opens the date picker.
 
 Example: start with open picker:
 
@@ -171,6 +171,19 @@ setVisibleMonth date (Model picker) =
 
 
 {-| Sets the selector level that is visible when date picker is open.
+
+Example: start on the year level:
+
+    init : ( Model, Cmd Msg )
+    init =
+        ( { date = Nothing
+          , dateText = ""
+          , pickerModel =
+                DatePicker.init
+                    |> DatePicker.setSelectorLevel DatePicker.YearsLevel
+          }
+        , Task.perform SetToday Date.today
+        )
 -}
 setSelectorLevel : SelectorLevel -> Model -> Model
 setSelectorLevel level (Model picker) =
