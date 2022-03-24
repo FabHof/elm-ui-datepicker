@@ -21,7 +21,7 @@ For when you want to be more in control
 -}
 
 import Date exposing (Date)
-import Element exposing (Attribute, Element, alignLeft, alignRight, centerX, centerY, padding, spacing)
+import Element exposing (Attribute, Element, alignLeft, alignRight, centerX, mouseOver, padding, spacing)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -304,6 +304,7 @@ type alias Settings =
     , disabledDayAttributes : List (Attribute Never)
     , monthsTableAttributes : List (Attribute Never)
     , yearsTableAttributes : List (Attribute Never)
+    , headerButtonsAttributes : List (Attribute Never)
     , previousMonthElement : Element Never
     , nextMonthElement : Element Never
     }
@@ -378,6 +379,26 @@ defaultSettings =
         [ Element.spaceEvenly
         , Element.width Element.fill
         , Element.height Element.fill
+        ]
+    , headerButtonsAttributes =
+        [ Element.pointer
+        , padding 6
+        , TestHelper.nextMonthAttr
+        , Border.rounded 3
+        , Border.shadow
+            { offset = ( 1, 1 )
+            , size = 1
+            , blur = 1
+            , color = Element.rgb255 186 189 182
+            }
+        , mouseOver
+            [ Border.shadow
+                { offset = ( 1, 1 )
+                , size = 2
+                , blur = 1
+                , color = Element.rgb255 186 189 182
+                }
+            ]
         ]
     , previousMonthElement =
         Element.text "<"
@@ -637,109 +658,70 @@ pickerColumns config =
 
 pickerHeader : Config msg -> Element msg
 pickerHeader { onChange, picker, settings } =
-    case picker.level of
-        DaysLevel ->
-            Element.row (extAttrs settings.headerAttributes)
-                [ Element.el
-                    [ alignLeft
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Months -1 picker.visibleMonth)
-                    , TestHelper.previousMonthAttr
-                    ]
-                  <|
-                    extEle settings.previousMonthElement
-                , Element.el
-                    [ centerX
-                    , Element.pointer
-                    , Events.onClick <| onChange <| PickerChanged <| ChangeLevel MonthsLevel
-                    ]
-                  <|
-                    Element.text <|
-                        Date.formatMaybeLanguage settings.language "MMMM yyyy" picker.visibleMonth
-                , Element.el
-                    [ alignRight
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Months 1 picker.visibleMonth)
-                    , TestHelper.nextMonthAttr
-                    ]
-                  <|
-                    extEle settings.nextMonthElement
-                ]
+    let
+        headerProperties =
+            case picker.level of
+                DaysLevel ->
+                    { stepUnit = Date.Months
+                    , stepSize = 1
+                    , title =
+                        Element.text <|
+                            Date.formatMaybeLanguage settings.language "MMMM yyyy" picker.visibleMonth
+                    , nextLevel = Just MonthsLevel
+                    }
 
-        MonthsLevel ->
-            Element.row (extAttrs settings.headerAttributes)
-                [ Element.el
-                    [ alignLeft
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Years -1 picker.visibleMonth)
-                    , TestHelper.previousMonthAttr
-                    ]
-                  <|
-                    extEle settings.previousMonthElement
-                , Element.el
-                    [ centerX
-                    , Element.pointer
-                    , Events.onClick <| onChange <| PickerChanged <| ChangeLevel YearsLevel
-                    ]
-                  <|
-                    Element.text <|
-                        Date.formatMaybeLanguage settings.language "yyyy" picker.visibleMonth
-                , Element.el
-                    [ alignRight
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Years 1 picker.visibleMonth)
-                    , TestHelper.nextMonthAttr
-                    ]
-                  <|
-                    extEle settings.nextMonthElement
-                ]
+                MonthsLevel ->
+                    { stepUnit = Date.Years
+                    , stepSize = 1
+                    , title =
+                        Element.text <|
+                            Date.formatMaybeLanguage settings.language "yyyy" picker.visibleMonth
+                    , nextLevel = Just YearsLevel
+                    }
 
-        YearsLevel ->
-            Element.row (extAttrs settings.headerAttributes)
-                [ Element.el
-                    [ alignLeft
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Years -10 picker.visibleMonth)
-                    , TestHelper.previousMonthAttr
-                    ]
-                  <|
-                    extEle settings.previousMonthElement
-                , Element.el
-                    [ centerX
-                    ]
-                  <|
-                    Element.text <|
-                        (Date.formatMaybeLanguage settings.language "yyyy" picker.visibleMonth
-                            |> String.slice 0 3
-                            |> String.padRight 4 'X'
-                        )
-                , Element.el
-                    [ alignRight
-                    , Element.pointer
-                    , Events.onClick <|
-                        onChange <|
-                            PickerChanged <|
-                                ChangeMonth (Date.add Date.Years 10 picker.visibleMonth)
-                    , TestHelper.nextMonthAttr
-                    ]
-                  <|
-                    extEle settings.nextMonthElement
-                ]
+                YearsLevel ->
+                    { stepUnit = Date.Years
+                    , stepSize = 10
+                    , title =
+                        Element.text <|
+                            (Date.formatMaybeLanguage settings.language "yyyy" picker.visibleMonth
+                                |> String.slice 0 3
+                                |> String.padRight 4 'X'
+                            )
+                    , nextLevel = Nothing
+                    }
+    in
+    Element.row (extAttrs settings.headerAttributes)
+        [ Input.button
+            (alignLeft
+                :: extAttrs settings.headerButtonsAttributes
+            )
+            { onPress =
+                Just <|
+                    onChange <|
+                        PickerChanged <|
+                            ChangeMonth (Date.add headerProperties.stepUnit (-1 * headerProperties.stepSize) picker.visibleMonth)
+            , label = extEle settings.previousMonthElement
+            }
+        , Input.button
+            (centerX
+                :: extAttrs settings.headerButtonsAttributes
+            )
+            { onPress = Maybe.map (\up -> onChange <| PickerChanged <| ChangeLevel up) headerProperties.nextLevel
+            , label = headerProperties.title
+            }
+        , Input.button
+            (alignRight
+                :: extAttrs settings.headerButtonsAttributes
+            )
+            { onPress =
+                Just <|
+                    onChange <|
+                        PickerChanged <|
+                            ChangeMonth (Date.add headerProperties.stepUnit headerProperties.stepSize picker.visibleMonth)
+            , label = extEle settings.nextMonthElement
+            }
+        ]
 
 
 dayView : Config msg -> Date -> Element msg
@@ -780,12 +762,12 @@ dayView ({ picker, settings } as config) day =
 -- ADDITIONAL HELPERS
 
 
-extAttrs : List (Attribute Never) -> List (Attribute a)
+extAttrs : List (Attribute Never) -> List (Attribute msg)
 extAttrs =
     List.map (Element.mapAttribute never)
 
 
-extEle : Element Never -> Element a
+extEle : Element Never -> Element msg
 extEle =
     Element.map never
 
