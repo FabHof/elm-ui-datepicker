@@ -1,7 +1,7 @@
 module DatePicker exposing
     ( input, Model, init, setToday, ChangeEvent(..), update, Settings, defaultSettings, initWithToday
     , close, open, setVisibleMonth
-    , SelectorLevel(..), setSelectorLevel
+    , SelectorLevel(..), setSelectorLevel, Language
     )
 
 {-|
@@ -251,7 +251,6 @@ type ChangeEvent
     = DateChanged Date
     | TextChanged String
     | PickerChanged Msg
-
 
 {-| -}
 update : Msg -> Model -> Model
